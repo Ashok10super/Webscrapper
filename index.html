@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>www.ZBOT.COM</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Welcome to the ZBOT</h1>
+      <div class="warning">
+        <p>Warning: System can only pull 12 properties data at this time</p>
+        <p>We are working on the system to pull maximum datas</p>
+      </div>
+    </header>
+    <div class="form-container">
+      <h2>Fill the form get data</h2>
+      <form id="auctionForm">
+        <label for="auctionId">Auction ID:</label>
+        <input type="text" id="auctionId" name="auctionId" required />
+
+        <label for="category">Category:</label>
+        <select id="category" name="categories">
+          <option value="select-category">--Select categories--</option>
+          <option value="commercial">Commercial</option>
+          <option value="Gold Auctions">Gold Auctions</option>
+          <option value="Industrials">Industrials</option>
+          <option value="Others">Others</option>
+          <option value="Residential">Residential</option>
+          <option value="Scrap, Plant & Machinery">
+            Scrap, Plant & Machinery
+          </option>
+          <option value="vehicle-auctions">vehicle-auctions</option>
+        </select>
+
+        <label for="bankName">Bank Name:</label>
+        <input type="text" id="bankName" name="bankName" required />
+
+        <label for="state">Select State:</label>
+        <select id="state" name="state">
+          <option value="">--Select State--</option>
+          <option value="Andhra Pradesh">Andhra Pradesh</option>
+          <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+          <option value="Assam">Assam</option>
+          <option value="Bihar">Bihar</option>
+          <option value="Chhattisgarh">Chhattisgarh</option>
+          <option value="Goa">Goa</option>
+          <option value="Gujarat">Gujarat</option>
+          <option value="Haryana">Haryana</option>
+          <option value="Himachal Pradesh">Himachal Pradesh</option>
+          <option value="Jharkhand">Jharkhand</option>
+          <option value="Karnataka">Karnataka</option>
+          <option value="Kerala">Kerala</option>
+          <option value="Madhya Pradesh">Madhya Pradesh</option>
+          <option value="Maharashtra">Maharashtra</option>
+          <option value="Manipur">Manipur</option>
+          <option value="Meghalaya">Meghalaya</option>
+          <option value="Mizoram">Mizoram</option>
+          <option value="Nagaland">Nagaland</option>
+          <option value="Odisha">Odisha</option>
+          <option value="Punjab">Punjab</option>
+          <option value="Rajasthan">Rajasthan</option>
+          <option value="Sikkim">Sikkim</option>
+          <option value="Tamil Nadu">Tamil Nadu</option>
+          <option value="Telangana">Telangana</option>
+          <option value="Tripura">Tripura</option>
+          <option value="Uttar Pradesh">Uttar Pradesh</option>
+          <option value="Uttarakhand">Uttarakhand</option>
+          <option value="West Bengal">West Bengal</option>
+        </select>
+
+        <label for="city">City:</label>
+        <select id="city" name="city">
+          <option value="select the city">--Select city--</option>
+          <option value="anekal">Anekal</option>
+          <option value="bagalkot">Bagalkot</option>
+          <option value="ballari">ballari</option>
+          <option value="belagavi">Belagavi</option>
+          <option value="belgaum">Belgaum</option>
+          <option value="bellary">Bellary</option>
+          <option value="bengaluru">Bengaluru</option>
+          <option value="bidar">Bidar</option>
+          <option value="bijapur">Bijapur</option>
+          <option value="chamarajanagar">Chamarajanagar</option>
+          <option value="channapatna">Channapatna</option>
+          <option value="chikkaballapur">Chikkaballapur</option>
+          <option value="chikmagalur">Chikmagalur</option>
+          <option value="chitradurga">Chitradurga</option>
+          <option value="dakshina-kannada">Dakshina Kannada</option>
+          <option value="davanagere">Davanagere</option>
+          <option value="dharwad">Dharwad</option>
+          <option value="gadag">Gadag</option>
+          <option value="gulbarga">Gulbarga</option>
+          <option value="hassan">Hassan</option>
+          <option value="haveri">Haveri</option>
+          <option value="hospet">Hospet</option>
+          <option value="hubballi">Hubballi</option>
+          <option value="kalaburagi">Kalaburagi</option>
+          <option value="kodagu">Kodagu</option>
+          <option value="kolar">Kolar</option>
+          <option value="koppal">Koppal</option>
+          <option value="kudgi">Kudgi</option>
+          <option value="kundagol">Kundagol</option>
+          <option value="mandya">Mandya</option>
+          <option value="mangalore">Mangalore</option>
+          <option value="mysuru">Mysuru</option>
+          <option value="raichur">Raichur</option>
+          <option value="ramanagara">Ramanagara</option>
+          <option value="shimoga">Shimoga</option>
+          <option value="shivamogga">Shivamogga</option>
+          <option value="tumkur">Tumkur</option>
+          <option value="udupi">Udupi</option>
+          <option value="uttara-kannada">Uttara Kannada</option>
+          <option value="vijayanagar">Vijayanagar</option>
+          <option value="vijayapur">Vijayapur</option>
+          <option value="yadgir">Yadgir</option>
+        </select>
+
+        <label for="area">Area:</label>
+        <input type="text" id="area" name="area" required />
+
+        <label for="maxPrice">Max Price:</label>
+        <input type="number" id="maxPrice" name="maxPrice" required />
+
+        <label for="minPrice">Min Price:</label>
+        <input type="number" id="minPrice" name="minPrice" required />
+
+        <label for="auctionStartDate">Auction Start Date:</label>
+        <input
+          type="date"
+          id="auctionStartDate"
+          name="auctionStartDate"
+          required
+        />
+
+        <label for="auctionEndDate">Auction End Date:</label>
+        <input type="date" id="auctionEndDate" name="auctionEndDate" required />
+
+        <label for="tenderLastDate">Last Date to Submit Tender:</label>
+        <input type="date" id="tenderLastDate" name="tenderLastDate" required />
+
+        <div class="button-container">
+          <button type="button" onclick="generateExcel()">
+            Generate Excel
+          </button>
+          <button type="button" onclick="pushToSaaS()">Push to SaaS</button>
+        </div>
+      </form>
+    </div>
+    <div id="loadingOverlay" class="loading-overlay" style="display: none">
+      <div class="spinner"></div>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
