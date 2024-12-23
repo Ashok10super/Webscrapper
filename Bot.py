@@ -59,9 +59,12 @@ def scrapperwithoutAuctionId(data):
         category = ""
     new_bank = bank.replace(" ", "+")
     print(new_bank)
-    page=None
+    page = 1
+    page = str(page)
     url = (
-        "https://www.eauctionsindia.com/search/{page}?auction=&order=&keyword="
+        "https://www.eauctionsindia.com/search/"
+        + page
+        + "?"
         + "&category="
         + category
         + "&state="
@@ -79,24 +82,39 @@ def scrapperwithoutAuctionId(data):
         + "&to="
         + auctionEndDate
     )
+    link = []
     # print(url)
     print("Base url->", url)
     response = requests.get(url)
-    if response.status_code != 200:
-        print("Fetching unsuccess")
-        return "Failed targeted website is down"
+    # Check response status
+    if response.status_code == 200:
+        print("Fetching success")
+        soup = BeautifulSoup(response.text, "html.parser")
+        print(soup)
+
+    else:
+        print("Unexpected status code:", response.status_code)
+        return link
+
+    # Parse the content
     soup = BeautifulSoup(response.text, "html.parser")
+    # if response.status_code != 200:
+    #     print("Fetching unsuccess")
+    # else:
+    #     print("Failed targeted website is down")
+    # soup = BeautifulSoup(response.text, "html.parser")
     # print(soup)
-    link = [] 
+
     # get the total number of pages available for this query
     pagination = soup.find("ul", class_="pagination")
+    print("pagination", pagination)
     if pagination != None:
         last_page_link = pagination.find_all("a", class_="page-item page-link")[-1]
-        print("pagination", last_page_link.text)
-        for i in range(1,last_page_link):
-             url = url.format(page=page)
+        last_number = int(last_page_link.text) + 1
+        print(last_number)
+        for page in range(1, last_number):
+            url = url.format(page=page)
             print(url)
-
             target_divs = soup.findAll(
                 "div",
                 class_="col-sm-12 col-md-6 col-lg-6 d-lg-flex justify-content-end",
@@ -110,7 +128,6 @@ def scrapperwithoutAuctionId(data):
                 else:
                     print("No link found.")
 
-
     target_divs = soup.findAll(
         "div",
         class_="col-sm-12 col-md-6 col-lg-6 d-lg-flex justify-content-end",
@@ -123,7 +140,7 @@ def scrapperwithoutAuctionId(data):
     # else:
     #     print("Next page link not found or href attribute is missing.")
     print(target_divs)
-   # store all the a tag
+    # store all the a tag
 
     for div in target_divs:
         link_tag = div.find("a")
