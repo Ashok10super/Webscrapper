@@ -1,10 +1,11 @@
 from flask import Flask, request, send_file
 import requests
-import openpyxl
 from io import BytesIO
 from flask_cors import CORS
 from bs4 import BeautifulSoup  # importing beauttiful soup module
 import pandas as pd  # importing pandas for creating excel file
+from datetime import datetime  # importing datetime object to format the date
+
 
 app = Flask(__name__)
 # Import CORS
@@ -18,6 +19,7 @@ def generate_excel():
 
     Auction_id = data["auctionId"]
     if Auction_id == "":
+        # check the total number of properties
         excel_file = scrapperwithoutAuctionId(data)
     # print(data.AuctionId)
 
@@ -53,15 +55,22 @@ def scrapperwithoutAuctionId(data):
     auctionEndDate = data["auctionEndDate"]
     SubmissionLastDate = [data["tenderLastDate"]]  # This is also a additional filed
 
+    if category == "select-category":
+        category = ""
+    new_bank = bank.replace(" ", "+")
+    print(new_bank)
+    page=None
     url = (
-        "https://www.eauctionsindia.com/search?auction=&order=&keyword=&category="
+        "https://www.eauctionsindia.com/search/{page}?auction=&order=&keyword="
+        + "&category="
+        + category
         + "&state="
         + state
         + "&city="
         + city
         + "&bank="
-        + bank
-        + "+Bank&min_price="
+        + new_bank
+        + "+&min_price="
         + minPrice
         + "&max_price="
         + maxPrice
@@ -78,9 +87,33 @@ def scrapperwithoutAuctionId(data):
         return "Failed targeted website is down"
     soup = BeautifulSoup(response.text, "html.parser")
     # print(soup)
+    link = [] 
+    # get the total number of pages available for this query
+    pagination = soup.find("ul", class_="pagination")
+    if pagination != None:
+        last_page_link = pagination.find_all("a", class_="page-item page-link")[-1]
+        print("pagination", last_page_link.text)
+        for i in range(1,last_page_link):
+             url = url.format(page=page)
+            print(url)
+
+            target_divs = soup.findAll(
+                "div",
+                class_="col-sm-12 col-md-6 col-lg-6 d-lg-flex justify-content-end",
+            )
+            for div in target_divs:
+                link_tag = div.find("a")
+                if link_tag and "href" in link_tag.attrs:
+                    auction_link = link_tag["href"]
+                    print("auction_link", auction_link)
+                    link.append(auction_link)
+                else:
+                    print("No link found.")
+
+
     target_divs = soup.findAll(
         "div",
-        class_="odd:bg-white even:bg-pc2 odd:text-black p-4 rounded-lg shadow-pgbtn my-4",
+        class_="col-sm-12 col-md-6 col-lg-6 d-lg-flex justify-content-end",
     )  # getting all the links
     # print("targetd links->", target_divs)  # print all the links on the page
 
@@ -89,27 +122,32 @@ def scrapperwithoutAuctionId(data):
     #     print("Next page link:", target_next_page["href"])
     # else:
     #     print("Next page link not found or href attribute is missing.")
-    link = []
+    print(target_divs)
+   # store all the a tag
 
     for div in target_divs:
         link_tag = div.find("a")
         if link_tag and "href" in link_tag.attrs:
             auction_link = link_tag["href"]
+            print("auction_link", auction_link)
             link.append(auction_link)
         else:
             print("No link found.")
 
-    return vist_and_construct_excel(link, area, SubmissionLastDate, category)
+    return vist_and_construct_excel(link, area, SubmissionLastDate)
     # for div in target_divs:
     #   p_tag = div.find()  # Find the first <p> tag in the current <div>
     # if p_tag is not None:
     #     p_tags.append(p_tag)  # Add the <pauction_data_dict[td_data[i].get_text()] = td_data[i + 1].get_text()
 
 
-def vist_and_construct_excel(link, area, submissionLastDate, category):
+def vist_and_construct_excel(
+    link,
+    area,
+    submissionLastDate,
+):
     # print(link)
     properties_list = []  # Stores all the properties in a list of dict
-    print("This is links->", link)
     for url in link:
         response = requests.get(url)
         if response.status_code != 200:
@@ -119,8 +157,9 @@ def vist_and_construct_excel(link, area, submissionLastDate, category):
         full_details = soup.find(class_="col-lg-12 col-md-12 col-sm-12 p-2")
 
         # Extract Auction ID (Look for the first <span> inside the first <p> tag)
-        Auction_id = soup.find("div", class_="auction-block").find("p").get_text()
 
+        trimmed_id = soup.find("div", class_="auction-block").find("p").get_text()
+        Auction_id = trimmed_id.split("#")[-1].strip()
         Row = soup.find("div", class_="bank-details row")  # Bank html block extraction
 
         bank_name = Row.find("a", class_="color-highlight").text.strip()
@@ -139,7 +178,13 @@ def vist_and_construct_excel(link, area, submissionLastDate, category):
             "div", class_="col-sm-6 reserve-price pt-3"
         ).find("span")
         if reserve_price_element:
-            reserve_price = reserve_price_element.get_text()
+            temp_reserve_price = (
+                reserve_price_element.get_text()
+                .replace("₹", " ")
+                .replace(",", "")
+                .strip()
+            )
+            reserve_price = int(temp_reserve_price)
 
         else:
             print("Reserve Price not found")
@@ -149,7 +194,7 @@ def vist_and_construct_excel(link, area, submissionLastDate, category):
 
         discription_block = soup.find("div", class_="description-block")
 
-        disp = discription_block.find("p")
+        disp = discription_block.find("p").get_text()
 
         # Extracting the State and city using a tag inside dicription block
         Hold_location = list()
@@ -185,15 +230,26 @@ def vist_and_construct_excel(link, area, submissionLastDate, category):
 
         auction_type = cleaned_list[3]
 
-        auction_start_time = cleaned_list[4]
+        temp_auction_start_time = cleaned_list[4]
 
-        auction_end_time = cleaned_list[5]
+        auction_start_time = format_date(temp_auction_start_time)
+        temp_auction_end_time = cleaned_list[5]
+        auction_end_time = format_date(temp_auction_end_time)
 
-        application_submissionLastDate = cleaned_list[6]
-        # Check the input area and category matches with the fetched data
-        isvalidated = validate_area_category(
-            area, property_area, category, asset_category
+        temp_application_submissionLastDate = cleaned_list[6]
+        application_submissionLastDate = format_date(
+            temp_application_submissionLastDate
         )
+
+        sale_notice_url = soup.find("div", class_="downloads-block").find("a")["href"]
+
+        # Check the input area and category matches with the fetched data
+        print("This is sale notice ", sale_notice_url)
+        isvalidated = validate_area_category(
+            area,
+            property_area,
+        )
+        break
         print(isvalidated)
         if isvalidated:
             properties_list.append(
@@ -216,6 +272,7 @@ def vist_and_construct_excel(link, area, submissionLastDate, category):
                     auction_start=auction_start_time,
                     auction_end=auction_end_time,
                     sub_end=application_submissionLastDate,
+                    sale_notice=sale_notice_url,
                 )
             )
     print("This is properties list :", properties_list)
@@ -241,9 +298,12 @@ def construct_dict(
     auction_start,
     auction_end,
     sub_end,
+    sale_notice,
 ):
 
     temp_dict = {
+        "Account Id": "",
+        "Account name": auction_id + "-" + bank_name + "-",
         "Auction Id": auction_id,
         "Bank Name": bank_name,
         "EMD": emd,
@@ -262,25 +322,19 @@ def construct_dict(
         "Auction Start": auction_start,
         "Auction End": auction_end,
         "Sub End": sub_end,
+        "sale_notice": sale_notice,
     }
 
     return temp_dict
 
 
-def validate_area_category(area, property_area, category, asset_category):
+def validate_area_category(area, property_area):
     cap_area = ""
-    if area != "":
-        cap_area = area.capitalize()
-    if cap_area == "" and category == "":
-        return True
-    elif cap_area == property_area and category == "":
-        return True
-    elif category == asset_category and cap_area == "":
-        return True
-    elif category == asset_category and cap_area == property_area:
+    if area == "":
         return True
     else:
-        return False
+        cap_area = area.capitalize()
+        return cap_area == property_area
 
 
 def construct_excel(properties):
@@ -294,6 +348,17 @@ def construct_excel(properties):
 
     # Return the in-memory Excel file (BytesIO object)
     return excel_file
+
+
+def format_date(date):
+    date_time_obj = datetime.strptime(date, "%d-%m-%Y %I%M %p")
+    formatted_date_time = date_time_obj.strftime("%d-%m-%Y %I:%M %p")
+    return formatted_date_time
+
+
+@app.route("/extract_next_page", methods=["GET"])
+def next_page():
+    request.json
 
 
 if __name__ == "__main__":
