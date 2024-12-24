@@ -5,6 +5,7 @@ from flask_cors import CORS
 from bs4 import BeautifulSoup  # importing beauttiful soup module
 import pandas as pd  # importing pandas for creating excel file
 from datetime import datetime  # importing datetime object to format the date
+from imageextract import extract_text
 
 
 app = Flask(__name__)
@@ -60,27 +61,16 @@ def scrapperwithoutAuctionId(data):
     new_bank = bank.replace(" ", "+")
     print(new_bank)
     page = 1
-    page = str(page)
-    url = (
-        "https://www.eauctionsindia.com/search/"
-        + page
-        + "?"
-        + "&category="
-        + category
-        + "&state="
-        + state
-        + "&city="
-        + city
-        + "&bank="
-        + new_bank
-        + "+&min_price="
-        + minPrice
-        + "&max_price="
-        + maxPrice
-        + "&from="
-        + auctionStartDate
-        + "&to="
-        + auctionEndDate
+    url = construct_url(
+        page=page,
+        category=category,
+        state=state,
+        city=city,
+        new_bank=bank,
+        min_price=minPrice,
+        max_price=maxPrice,
+        auctionStartDate=auctionStartDate,
+        auctionEndDate=auctionEndDate,
     )
     link = []
     # print(url)
@@ -90,35 +80,36 @@ def scrapperwithoutAuctionId(data):
     if response.status_code == 200:
         print("Fetching success")
         soup = BeautifulSoup(response.text, "html.parser")
-        print(soup)
 
     else:
         print("Unexpected status code:", response.status_code)
-        return link
-
-    # Parse the content
-    soup = BeautifulSoup(response.text, "html.parser")
-    # if response.status_code != 200:
-    #     print("Fetching unsuccess")
-    # else:
-    #     print("Failed targeted website is down")
-    # soup = BeautifulSoup(response.text, "html.parser")
-    # print(soup)
-
-    # get the total number of pages available for this query
+    # check for the pagination
     pagination = soup.find("ul", class_="pagination")
     print("pagination", pagination)
     if pagination != None:
         last_page_link = pagination.find_all("a", class_="page-item page-link")[-1]
-        last_number = int(last_page_link.text) + 1
+        last_number = int(last_page_link.text)
         print(last_number)
         for page in range(1, last_number):
-            url = url.format(page=page)
-            print(url)
-            target_divs = soup.findAll(
-                "div",
-                class_="col-sm-12 col-md-6 col-lg-6 d-lg-flex justify-content-end",
+            url = construct_url(
+                page=page,
+                category=category,
+                state=state,
+                city=city,
+                new_bank=bank,
+                min_price=minPrice,
+                max_price=maxPrice,
+                auctionStartDate=auctionStartDate,
+                auctionEndDate=auctionEndDate,
             )
+            print("This is the pagination url", url)
+            response = requests.get(url=url)
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.text, "html.parser")
+                target_divs = soup.findAll(
+                    "div",
+                    class_="col-sm-12 col-md-6 col-lg-6 d-lg-flex justify-content-end",
+                )
             for div in target_divs:
                 link_tag = div.find("a")
                 if link_tag and "href" in link_tag.attrs:
@@ -127,6 +118,10 @@ def scrapperwithoutAuctionId(data):
                     link.append(auction_link)
                 else:
                     print("No link found.")
+        return vist_and_construct_excel(
+            link,
+            area,
+        )
 
     target_divs = soup.findAll(
         "div",
@@ -151,7 +146,7 @@ def scrapperwithoutAuctionId(data):
         else:
             print("No link found.")
 
-    return vist_and_construct_excel(link, area, SubmissionLastDate)
+    return vist_and_construct_excel(link, area)
     # for div in target_divs:
     #   p_tag = div.find()  # Find the first <p> tag in the current <div>
     # if p_tag is not None:
@@ -161,9 +156,8 @@ def scrapperwithoutAuctionId(data):
 def vist_and_construct_excel(
     link,
     area,
-    submissionLastDate,
 ):
-    # print(link)
+    print(link)
     properties_list = []  # Stores all the properties in a list of dict
     for url in link:
         response = requests.get(url)
@@ -258,40 +252,40 @@ def vist_and_construct_excel(
             temp_application_submissionLastDate
         )
 
-        sale_notice_url = soup.find("div", class_="downloads-block").find("a")["href"]
+        sale_notice_url_temp = soup.find("div", class_="downloads-block")
+        if sale_notice_url_temp != None:
+            sale_notice_url = sale_notice_url_temp.find("a")["href"]
+        else:
+            sale_notice_url = " "
+
+        data = extract_text(sale_notice_url)
 
         # Check the input area and category matches with the fetched data
-        print("This is sale notice ", sale_notice_url)
-        isvalidated = validate_area_category(
-            area,
-            property_area,
-        )
-        break
-        print(isvalidated)
-        if isvalidated:
-            properties_list.append(
-                construct_dict(
-                    auction_id=Auction_id,
-                    bank_name=bank_name,
-                    emd=emd,
-                    branch_name=branch_name,
-                    service_provider=service_provider,
-                    reserve_price=reserve_price,
-                    contact_details=contact_details,
-                    discription=disp,
-                    state=state,
-                    city=city,
-                    area=property_area,
-                    borrower_name=borrower_name,
-                    asset_category=asset_category,
-                    property_type=property_type,
-                    auction_type=auction_type,
-                    auction_start=auction_start_time,
-                    auction_end=auction_end_time,
-                    sub_end=application_submissionLastDate,
-                    sale_notice=sale_notice_url,
-                )
+        print("Im done")
+        properties_list.append(
+            construct_dict(
+                auction_id=Auction_id,
+                bank_name=bank_name,
+                emd=emd,
+                branch_name=branch_name,
+                service_provider=service_provider,
+                reserve_price=reserve_price,
+                contact_details=contact_details,
+                discription=disp,
+                state=state,
+                city=city,
+                area=property_area,
+                borrower_name=borrower_name,
+                asset_category=asset_category,
+                property_type=property_type,
+                auction_type=auction_type,
+                auction_start=auction_start_time,
+                auction_end=auction_end_time,
+                sub_end=application_submissionLastDate,
+                sale_notice=sale_notice_url,
+                info=data,
             )
+        )
     print("This is properties list :", properties_list)
     return construct_excel(properties=properties_list)
 
@@ -316,6 +310,7 @@ def construct_dict(
     auction_end,
     sub_end,
     sale_notice,
+    info,
 ):
 
     temp_dict = {
@@ -340,6 +335,7 @@ def construct_dict(
         "Auction End": auction_end,
         "Sub End": sub_end,
         "sale_notice": sale_notice,
+        "info": info,
     }
 
     return temp_dict
@@ -356,13 +352,11 @@ def validate_area_category(area, property_area):
 
 def construct_excel(properties):
     df = pd.DataFrame(properties)
-
     # Save the DataFrame to an Excel file
-    excel_file_path = "property.xlsx"
+    print("im from excel")
     excel_file = BytesIO()
     df.to_excel(excel_file, index=False)  # Save the DataFrame to the in-memory buffer
     excel_file.seek(0)  # Reset the buffer to the beginning
-
     # Return the in-memory Excel file (BytesIO object)
     return excel_file
 
@@ -371,6 +365,41 @@ def format_date(date):
     date_time_obj = datetime.strptime(date, "%d-%m-%Y %I%M %p")
     formatted_date_time = date_time_obj.strftime("%d-%m-%Y %I:%M %p")
     return formatted_date_time
+
+
+def construct_url(
+    page,
+    category,
+    state,
+    city,
+    new_bank,
+    min_price,
+    max_price,
+    auctionStartDate,
+    auctionEndDate,
+):
+    url = (
+        "https://www.eauctionsindia.com/search/"
+        + str(page)
+        + "?"
+        + "&category="
+        + category
+        + "&state="
+        + state
+        + "&city="
+        + city
+        + "&bank="
+        + new_bank
+        + "+&min_price="
+        + min_price
+        + "&max_price="
+        + max_price
+        + "&from="
+        + auctionStartDate
+        + "&to="
+        + auctionEndDate
+    )
+    return url
 
 
 @app.route("/extract_next_page", methods=["GET"])
