@@ -11,7 +11,7 @@ body {
 }
 
 /* Warning message styling */
-.warning {
+.sop {
   background-color: #fff3cd; /* Light yellow background for warning */
   color: #856404; /* Dark yellow text color */
   border: 1px solid #ffeeba; /* Border color for warning */
@@ -131,4 +131,6 @@ button:hover {
     transform: rotate(360deg);
   }
 }
-
+header{
+  
+}

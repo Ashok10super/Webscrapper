@@ -9,9 +9,21 @@
   <body>
     <header>
       <h1>Welcome to the ZBOT</h1>
-      <div class="warning">
-        <p>Warning: System can only pull 12 properties data at this time</p>
-        <p>We are working on the system to pull maximum datas</p>
+      <div class="sop">
+        <h2>SOP</h2>
+        <p>1.Fetch the datas from one day above the previous day</p>
+        <p>
+          2.After extraction merge the previous days extract with current one
+        </p>
+        <p>
+          3.Use Auction id to remove the duplicate properties from the excel
+        </p>
+        <p>
+          4.After removing the duplicate update the possession status of the
+          property
+        </p>
+        <p>5.If Everything is done verify and upload to the crm</p>
+        <p>6.Save the current extarct to the drive</p>
       </div>
     </header>
     <div class="form-container">
@@ -62,7 +74,7 @@
           <option value="Punjab">Punjab</option>
           <option value="Rajasthan">Rajasthan</option>
           <option value="Sikkim">Sikkim</option>
-          <option value="Tamil Nadu">Tamil Nadu</option>
+          <option value="Tamil-Nadu">Tamil-Nadu</option>
           <option value="Telangana">Telangana</option>
           <option value="Tripura">Tripura</option>
           <option value="Uttar Pradesh">Uttar Pradesh</option>
@@ -115,6 +127,7 @@
           <option value="vijayanagar">Vijayanagar</option>
           <option value="vijayapur">Vijayapur</option>
           <option value="yadgir">Yadgir</option>
+          <option value="Chennai">Chennai</option>
         </select>
 
         <label for="area">Area:</label>

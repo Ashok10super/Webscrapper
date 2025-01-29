@@ -5,13 +5,15 @@ from flask_cors import CORS
 from bs4 import BeautifulSoup  # importing beauttiful soup module
 import pandas as pd  # importing pandas for creating excel file
 from datetime import datetime  # importing datetime object to format the date
-from imageextract import extract_text
 
 
 app = Flask(__name__)
 # Import CORS
 # CORS(app)
 CORS(app, resources={r"/generate-excel": {"origins": "http://127.0.0.1:5501"}})
+
+#one tcp/ip 3-way handshake is made to the server and using the instance we are making repeated
+session = requests.session()
 
 
 @app.route("/generate-excel", methods=["POST"])
@@ -34,11 +36,6 @@ def generate_excel():
         download_name="auction_data.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-
-
-def scrapperwithAuctionid():
-    return 0
-
 
 def scrapperwithoutAuctionId(data):
 
@@ -73,9 +70,13 @@ def scrapperwithoutAuctionId(data):
         auctionEndDate=auctionEndDate,
     )
     link = []
+    # create a session for connection pooling
     # print(url)
     print("Base url->", url)
-    response = requests.get(url)
+    try:
+        response = session.get(url, timeout=45)
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
     # Check response status
     if response.status_code == 200:
         print("Fetching success")
@@ -103,30 +104,39 @@ def scrapperwithoutAuctionId(data):
                 auctionEndDate=auctionEndDate,
             )
             print("This is the pagination url", url)
-            response = requests.get(url=url)
+            try:
+                response = session.get(url=url, timeout=45)
+                print(response.raise_for_status())
+            except requests.exceptions.RequestException as e:
+                print(f"An error occurred: {e}")
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, "html.parser")
-                target_divs = soup.findAll(
-                    "div",
-                    class_="col-sm-12 col-md-6 col-lg-6 d-lg-flex justify-content-end",
-                )
+                target_divs = soup.findAll("div", class_="ms-auto")
             for div in target_divs:
                 link_tag = div.find("a")
                 if link_tag and "href" in link_tag.attrs:
                     auction_link = link_tag["href"]
                     print("auction_link", auction_link)
-                    link.append(auction_link)
-                else:
-                    print("No link found.")
+                    url = "https://www.eauctionsindia.com" + str(auction_link)
+                    link.append(url)
         return vist_and_construct_excel(
             link,
             area,
         )
+    else:
+        response = session.get(url=url)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, "html.parser")
+            target_divs = soup.findAll("div", class_="ms-auto")
+        for div in target_divs:
+            link_tag = div.find("a")
+            if link_tag and "href" in link_tag.attrs:
+                auction_link = link_tag["href"]
+                print("auction_link", auction_link)
+                url = "https://www.eauctionsindia.com" + str(auction_link)
+                link.append(url)
+        return vist_and_construct_excel(link, area)
 
-    target_divs = soup.findAll(
-        "div",
-        class_="col-sm-12 col-md-6 col-lg-6 d-lg-flex justify-content-end",
-    )  # getting all the links
     # print("targetd links->", target_divs)  # print all the links on the page
 
     # print("Next url", next_url["href"])
@@ -134,19 +144,7 @@ def scrapperwithoutAuctionId(data):
     #     print("Next page link:", target_next_page["href"])
     # else:
     #     print("Next page link not found or href attribute is missing.")
-    print(target_divs)
     # store all the a tag
-
-    for div in target_divs:
-        link_tag = div.find("a")
-        if link_tag and "href" in link_tag.attrs:
-            auction_link = link_tag["href"]
-            print("auction_link", auction_link)
-            link.append(auction_link)
-        else:
-            print("No link found.")
-
-    return vist_and_construct_excel(link, area)
     # for div in target_divs:
     #   p_tag = div.find()  # Find the first <p> tag in the current <div>
     # if p_tag is not None:
@@ -160,107 +158,184 @@ def vist_and_construct_excel(
     print(link)
     properties_list = []  # Stores all the properties in a list of dict
     for url in link:
-        response = requests.get(url)
+        try:
+            response = session.get(url, timeout=45)
+        except requests.exceptions.RequestException as e:
+            print(f"An error occurred: {e}")
         if response.status_code != 200:
+            print("Targeted website is down")
             return "Targeted website is down"
 
         soup = BeautifulSoup(response.text, "html.parser")
-        full_details = soup.find(class_="col-lg-12 col-md-12 col-sm-12 p-2")
+        auction_id_class = soup.find(class_="text-dark fw-bold")
+        print("Auction_id", auction_id_class)
 
         # Extract Auction ID (Look for the first <span> inside the first <p> tag)
 
-        trimmed_id = soup.find("div", class_="auction-block").find("p").get_text()
-        Auction_id = trimmed_id.split("#")[-1].strip()
-        Row = soup.find("div", class_="bank-details row")  # Bank html block extraction
-
-        bank_name = Row.find("a", class_="color-highlight").text.strip()
-
-        # Extracting EMD
-        emd = Row.find_all("h6")[0].text.split(":")[1].strip()
-
-        # Extracting Branch Name
-        branch_name = Row.find_all("h6")[1].text.split(":")[1].strip()
-
-        # Extracting Service Provider
-        service_provider = Row.find_all("h6")[2].text.split(":")[1].strip()
-
-        # Extracting Reserve Price
-        reserve_price_element = soup.find(
-            "div", class_="col-sm-6 reserve-price pt-3"
-        ).find("span")
-        if reserve_price_element:
-            temp_reserve_price = (
-                reserve_price_element.get_text()
-                .replace("₹", " ")
-                .replace(",", "")
-                .strip()
-            )
-            reserve_price = int(temp_reserve_price)
-
-        else:
-            print("Reserve Price not found")
-
-        # Extracting Contact Details
-        contact_details = Row.find("p", class_="color-highlight").text.strip()
-
-        discription_block = soup.find("div", class_="description-block")
-
-        disp = discription_block.find("p").get_text()
-
-        # Extracting the State and city using a tag inside dicription block
-        Hold_location = list()
-        get_city_area_state = discription_block.find_all("span")
-
-        for item in get_city_area_state:
-            Hold_location.append(item.get_text())
-
-        Hold_location[1] = Hold_location[1].strip()
-        state = Hold_location[0]
-
-        city = Hold_location[1]
-
-        property_area = Hold_location[2]
-
-        # Extract the the property details
-        property_details = soup.find("div", class_="property-details-block")
-        property = list()
-        details = property_details.find_all("h6")
-        for span in details:
-            property.append(span.get_text())
-
-        cleaned_list = [
-            item.replace(":", "").replace("\n", "").replace("\xa0", "").strip()
-            for item in property
-        ]
-
-        borrower_name = cleaned_list[0]
-
-        asset_category = cleaned_list[1]
-
-        property_type = cleaned_list[2]
-
-        auction_type = cleaned_list[3]
-
-        temp_auction_start_time = cleaned_list[4]
-
-        auction_start_time = format_date(temp_auction_start_time)
-        temp_auction_end_time = cleaned_list[5]
-        auction_end_time = format_date(temp_auction_end_time)
-
-        temp_application_submissionLastDate = cleaned_list[6]
-        application_submissionLastDate = format_date(
-            temp_application_submissionLastDate
+        auction_text = auction_id_class.get_text(strip=True)
+        Auction_id = auction_text.split("#")[-1].strip()
+        print(Auction_id)
+        bank_name_element = soup.find("strong", text="Bank Name : ").find_next_sibling(
+            "span"
+        )
+        bank_name = (
+            bank_name_element.get_text(strip=True) if bank_name_element else None
         )
 
-        sale_notice_url_temp = soup.find("div", class_="downloads-block")
-        if sale_notice_url_temp != None:
-            sale_notice_url = sale_notice_url_temp.find("a")["href"]
+        # Extract EMD
+        emd_element = soup.find("strong", text="EMD : ")
+        if(emd_element!=None):
+            emd_element=emd_element.find_next_sibling('span')
+        emd = (
+            emd_element.get_text(strip=True).replace("₹", " ").strip()
+            if emd_element
+            else None
+        )
+        # Extract Branch Name
+        branch_name_element = soup.find(
+            "strong", text="Branch Name : "
+        ).find_next_sibling("span")
+        branch_name = (
+            branch_name_element.get_text(strip=True) if branch_name_element else None
+        )
+
+        # Extract Service Provider
+        service_provider_element = soup.find(
+            "strong", text="Service Provider : "
+        ).find_next_sibling("span")
+        service_provider = (
+            service_provider_element.get_text(strip=True)
+            if service_provider_element
+            else None
+        )
+
+        # Extract Reserve Price
+        reserve_price_element = soup.find(
+            "strong", text="Reserve Price : "
+        ).find_next_sibling("span")
+        reserve_price = (
+            reserve_price_element.get_text(strip=True).replace("₹", " ").strip()
+            if reserve_price_element
+            else None
+        )
+
+        # Extract Contact Details
+        contact_details_element = soup.find(
+            "strong", text="Contact Details : "
+        ).find_next("p")
+        contact_details = (
+            contact_details_element.get_text(strip=True)
+            if contact_details_element
+            else None
+        )
+
+        # Extract Description
+        description_div = soup.find_all("div", class_="mb-4")
+        # description = (
+        #     description_div.find("p").text
+        #     if description_div and description_div.find("p")
+        #     else None
+        # )
+        description = description_div[4]
+        description_text = (
+            description.find("p").text if description.find("p") else "No <p> tag found"
+        )
+        print("Description", description_text)
+
+        # Extract State
+        state_element = soup.find("strong", text="Province/State : ").find_next("a")
+        state = state_element.get_text(strip=True) if state_element else None
+
+        # Extract City
+        city_element = soup.find("strong", text="City/Town : ").find_next("a")
+        city = city_element.get_text(strip=True) if city_element else None
+
+        # Extract Area
+        area_element = soup.find("strong", text="Area/Town : ").find_next("span")
+        areas = area_element.get_text(strip=True) if area_element else None
+
+        # Extract Borrower Name
+        borrower_name_element = soup.find(
+            "strong", text="Borrower Name : "
+        ).find_next_sibling("span")
+        borrower_name = (
+            borrower_name_element.get_text(strip=True)
+            if borrower_name_element
+            else None
+        )
+
+        # Extract Asset Category
+        asset_category_element = soup.find(
+            "strong", text="Asset Category : "
+        ).find_next("a")
+        asset_category = (
+            asset_category_element.get_text(strip=True)
+            if asset_category_element
+            else None
+        )
+
+        # Extract Property Type
+        property_type_element = soup.find(
+            "strong", text="Property Type : "
+        ).find_next_sibling("span")
+        property_type = (
+            property_type_element.get_text(strip=True)
+            if property_type_element
+            else None
+        )
+
+        # Extract Auction Type
+        auction_type_element = soup.find(
+            "strong", text="Auction Type : "
+        ).find_next_sibling("span")
+        auction_type = (
+            auction_type_element.get_text(strip=True) if auction_type_element else None
+        )
+
+        # Extract Auction Start Time
+        auction_start_element = soup.find(
+            "strong", text="Auction Start Date : "
+        ).find_next_sibling("span")
+        auction_start = (
+            auction_start_element.get_text(strip=True)
+            if auction_start_element
+            else None
+        )
+
+        # Extract Auction End Time
+        auction_end_element = soup.find(
+            "strong", text="Auction End Time : "
+        ).find_next_sibling("span")
+        auction_end = (
+            auction_end_element.get_text(strip=True) if auction_end_element else None
+        )
+
+        # Extract Application Submission End Date
+        sub_end_element = soup.find(
+            "strong", text="Application Subbmision Date : "
+        ).find_next_sibling("span")
+        sub_end = sub_end_element.get_text(strip=True) if sub_end_element else None
+
+        # Extract Sale Notice URL
+        sale_notice_element = soup.find("strong", text="Sale Notice 1: ")
+        print("Sale notice element", sale_notice_element)
+        if sale_notice_element:
+            sale_notice_element = sale_notice_element.find_next_sibling("span").find(
+                "a"
+            )
+            temp_sales_notice = sale_notice_element["href"]
+            if "eauctionsindia" in str(temp_sales_notice):
+                print("Sale notice already contains link")
+                sale_notice_url = temp_sales_notice
+            else:
+                sale_notice_url = (
+                    "https://www.eauctionsindia.com" + sale_notice_element["href"]
+                    if sale_notice_element
+                    else ""
+                )
         else:
             sale_notice_url = " "
-
-        data = extract_text(sale_notice_url)
-
-        # Check the input area and category matches with the fetched data
+        print("final sales notice url", sale_notice_url)
         print("Im done")
         properties_list.append(
             construct_dict(
@@ -271,19 +346,19 @@ def vist_and_construct_excel(
                 service_provider=service_provider,
                 reserve_price=reserve_price,
                 contact_details=contact_details,
-                discription=disp,
+                discription=description_text,
                 state=state,
                 city=city,
-                area=property_area,
+                area=areas,
                 borrower_name=borrower_name,
                 asset_category=asset_category,
                 property_type=property_type,
                 auction_type=auction_type,
-                auction_start=auction_start_time,
-                auction_end=auction_end_time,
-                sub_end=application_submissionLastDate,
+                auction_start=auction_start,
+                auction_end=auction_end,
+                sub_end=sub_end,
                 sale_notice=sale_notice_url,
-                info=data,
+                Possession_type=""
             )
         )
     print("This is properties list :", properties_list)
@@ -310,11 +385,9 @@ def construct_dict(
     auction_end,
     sub_end,
     sale_notice,
-    info,
+    Possession_type,
 ):
-
     temp_dict = {
-        "Account Id": "",
         "Account name": auction_id + "-" + bank_name + "-",
         "Auction Id": auction_id,
         "Bank Name": bank_name,
@@ -335,7 +408,7 @@ def construct_dict(
         "Auction End": auction_end,
         "Sub End": sub_end,
         "sale_notice": sale_notice,
-        "info": info,
+        "Possession_type":Possession_type,
     }
 
     return temp_dict
@@ -365,7 +438,6 @@ def format_date(date):
     date_time_obj = datetime.strptime(date, "%d-%m-%Y %I%M %p")
     formatted_date_time = date_time_obj.strftime("%d-%m-%Y %I:%M %p")
     return formatted_date_time
-
 
 def construct_url(
     page,
@@ -402,10 +474,6 @@ def construct_url(
     return url
 
 
-@app.route("/extract_next_page", methods=["GET"])
-def next_page():
-    request.json
-
-
 if __name__ == "__main__":
     app.run(port=8080)
+
