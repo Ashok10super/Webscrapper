@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+from datetime import datetime
 # import sys
 # sys.path.append('/home/ashok/scrapper/Eauctionsindiabot/Bot.py')
 # from Eauctionsindiabot.Bot import construct_excel
@@ -13,9 +14,11 @@ def get_total_property_list():
     url = "https://baanknet.com/eauction-psb/api/property-listing-data/1?page=0&size=10"
     payload = {
         "city": "Bengaluru",
+        "possessionType":["Physical"],
         "priceFrom": "0",
-        "sortBy": "3",
         "priceTo": "1000000000",
+        "sortBy": "3",
+       
     }
 
     headers = {"Content-Type": "application/json"}
@@ -85,19 +88,24 @@ def fetch_property_details(propId_list,headers):
                 auction_details = resp_data.get('auctionDetails', {}) or {}
                 print("Auction_id->", auction_details)
                 
-
                 Auction_id = auction_details.get('AuctionId')
-                print("Auction id->", Auction_id if Auction_id is not None else "Not Available")
+                if Auction_id is None:
+                    continue
 
                 Emd = auction_details.get('EMD')
-                print("EMD amount->", Emd if Emd is not None else "Not Available")
+                if Emd is None:
+                    continue
 
                 Reserve_price = auction_details.get('ReservePrice')
-                print("Reserve price->", Reserve_price if Reserve_price is not None else "Not Available")
+                if Reserve_price is None:
+                    continue
 
                 Auction_start_date = auction_details.get('Auctionstartdate')
-                print("Auction start date->", Auction_start_date if Auction_start_date is not None else "Not Available")
-
+                if Auction_start_date is None:
+                    continue
+                else:
+                    if not is_auction_date_valid(Auction_start_date,"10-02-2025 10:00"):
+                        continue
                 Auction_end_date = auction_details.get('AuctionEndDate')
                 print("Auction end date->", Auction_end_date if Auction_end_date is not None else "Not Available")
 
@@ -105,13 +113,15 @@ def fetch_property_details(propId_list,headers):
                 print("Bank name->", Bankname if Bankname is not None else "Not Available")
 
                 Branchname = resp_data.get('locality')
-                print("Branch name->", Branchname if Branchname is not None else "Not Available")
+                if Bankname is None:
+                    continue
 
                 City = resp_data.get('city')
                 print("City->", City if City is not None else "Not Available")
 
                 Area = resp_data.get('locality')
-                print("Area->", Area if Area is not None else "Not Available")
+                if Area is None:
+                    continue    
 
                 state_info = resp_data.get('commonPropertyDetails', {}).get('stateId', {})
                 State = state_info.get('stateName')
@@ -120,7 +130,8 @@ def fetch_property_details(propId_list,headers):
                 Service_provider = "Ebkray"
 
                 Contact_details = resp_data.get('commonPropertyDetails', {}).get('department', {}).get('phoneNo')
-                print("Contact details->", Contact_details if Contact_details is not None else "Not Available")
+                if Contact_details is None:
+                    continue
 
                 Description = resp_data.get('commonPropertyDetails', {}).get('summaryDesc')
                 print("Description->", Description if Description is not None else "Not Available")
@@ -130,15 +141,16 @@ def fetch_property_details(propId_list,headers):
 
                 property_type_info = resp_data.get('commonPropertyDetails', {}).get('propertySubType', {})
                 Property_type = property_type_info.get('propertySubType')
-                print("Property type->", Property_type if Property_type is not None else "Not Available")
-                
-
+                if Property_type is None:
+                    continue
                 possession = resp_data.get('commonPropertyDetails',{}).get('propertyPossessionTypeId',{}).get('propertyPossessionType')
                 possession if possession is not None else "Not Available"
 
                 Auction_type = 'Sarfaesi Auction'
 
                 Sale_notice_link = "https://baanknet.com/eauction-psb/api/download-property-document/"+str(prop)
+
+                #Check all the conditions are satisfied
 
                 #After fetching all the nescesssary datas create a dict and store that dict to the list
                 property_list.append(construct_dict(auction_id=Auction_id,bank_name=Bankname,emd=Emd,branch_name=Branchname,service_provider=Service_provider,
@@ -150,7 +162,8 @@ def fetch_property_details(propId_list,headers):
         except requests.exceptions.RequestException as e:
             print("Error happend while making api call->",e) 
 
-    print(property_list)    
+    print(property_list)
+
     create_excel(prop_list=property_list)
 
 
@@ -210,4 +223,14 @@ def construct_dict(
     }
 
     return temp_dict
+
+def is_auction_date_valid(Auction_start_date,compare_date):
+    date_format = "%d-%m-%Y %H:%M"
+    temp_auction_date = datetime.strptime(Auction_start_date,date_format)
+    compare_auction_date = datetime.strptime(compare_date,date_format) 
+    return temp_auction_date>compare_auction_date
+
+
+#driver code
 get_total_property_list()
+
