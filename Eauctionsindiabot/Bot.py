@@ -90,7 +90,7 @@ def scrapperwithoutAuctionId(data):
     if pagination != None:
         last_page_link = pagination.find_all("a", class_="page-item page-link")[-1]
         last_number = int(last_page_link.text)
-        print(last_number)
+        print("This is the last number->",last_number)
         for page in range(1, last_number):
             url = construct_url(
                 page=page,
@@ -106,19 +106,27 @@ def scrapperwithoutAuctionId(data):
             print("This is the pagination url", url)
             try:
                 response = session.get(url=url, timeout=45)
-                print(response.raise_for_status())
             except requests.exceptions.RequestException as e:
                 print(f"An error occurred: {e}")
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, "html.parser")
-                target_divs = soup.findAll("div", class_="ms-auto")
-            for div in target_divs:
-                link_tag = div.find("a")
-                if link_tag and "href" in link_tag.attrs:
-                    auction_link = link_tag["href"]
-                    print("auction_link", auction_link)
-                    url = "https://www.eauctionsindia.com" + str(auction_link)
-                    link.append(url)
+                contanier_div = soup.findAll("div", class_="row mb-3")
+                for i in contanier_div:
+                    auction_link_temp = i.find("div",class_="col-lg-9 col-md-9 col-sm-12 col-xs-12")
+                    if auction_link_temp is not None:
+                        auction_link = auction_link_temp.find_all("div",class_="row")[-1]
+                        print("auction_link",auction_link)
+                        auction_links = (auction_link.find("a")["href"])
+                        print("auction link->",auction_links)
+                        url = "https://www.eauctionsindia.com" + str(auction_links)
+                        link.append(url)
+            # for div in target_divs:
+            #     link_tag = div.find("a")
+            #     if link_tag and "href" in link_tag.attrs:
+            #         auction_link = link_tag["href"]
+            #         print("auction_link", auction_link)
+            #         url = "https://www.eauctionsindia.com" + str(auction_link)
+            #         link.append(url)   
         return vist_and_construct_excel(
             link,
             area,
