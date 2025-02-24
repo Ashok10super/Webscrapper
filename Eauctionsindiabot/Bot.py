@@ -239,17 +239,14 @@ def vist_and_construct_excel(
 
         # Extract Description
         description_div = soup.find_all("div", class_="mb-4")
-        # description = (
-        #     description_div.find("p").text
-        #     if description_div and description_div.find("p")
-        #     else None
-        # )
-        description = description_div[4]
+        print("All the mb-4",description_div)
+        description = description_div[5]
+        print("Length of description->",len(description_div))
+        print("Description-div->",description)
         description_text = (
             description.find("p").text if description.find("p") else "No <p> tag found"
         )
         print("Description", description_text)
-
         # Extract State
         state_element = soup.find("strong", text="Province/State : ").find_next("a")
         state = state_element.get_text(strip=True) if state_element else None
@@ -381,7 +378,7 @@ def construct_dict(
     service_provider,
     reserve_price,
     contact_details,
-    discription,
+    description,
     state,
     city,
     area,
@@ -404,7 +401,7 @@ def construct_dict(
         "Service Provider": service_provider,
         "Reserve Price": reserve_price,
         "Contact Details": contact_details,
-        "Description": discription,  # Ensure correct spelling
+        "Description": description,  # Ensure correct spelling
         "State": state,
         "City": city,
         "Area": area,
