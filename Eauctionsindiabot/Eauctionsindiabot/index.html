@@ -29,6 +29,9 @@
     <div class="form-container">
       <h2>Fill the form get data</h2>
       <form id="auctionForm">
+        <label for="auctionId">Auction ID:</label>
+        <input type="text" id="auctionId" name="auctionId" required />
+
         <label for="category">Category:</label>
         <select id="category" name="categories">
           <option value="select-category">--Select categories--</option>
@@ -81,12 +84,11 @@
 
         <label for="city">City:</label>
         <select id="city" name="city">
-          <option value="">--Select city--</option>
+          <option value="select the city">--Select city--</option>
           <option value="anekal">Anekal</option>
           <option value="bagalkot">Bagalkot</option>
           <option value="ballari">ballari</option>
           <option value="belagavi">Belagavi</option>
-          <option value="Chennai">Chennai</option>
           <option value="belgaum">Belgaum</option>
           <option value="bellary">Bellary</option>
           <option value="bengaluru">Bengaluru</option>
@@ -127,6 +129,10 @@
           <option value="yadgir">Yadgir</option>
           <option value="Chennai">Chennai</option>
         </select>
+
+        <label for="area">Area:</label>
+        <input type="text" id="area" name="area" required />
+
         <label for="maxPrice">Max Price:</label>
         <input type="number" id="maxPrice" name="maxPrice" required />
 
@@ -151,6 +157,7 @@
           <button type="button" onclick="generateExcel()">
             Generate Excel
           </button>
+          <button type="button" onclick="pushToSaaS()">Push to SaaS</button>
         </div>
       </form>
     </div>

@@ -89,7 +89,6 @@ button {
   border-radius: 4px;
   color: #fff;
   cursor: pointer;
-  justify-self: center;
 }
 
 button:first-child {
@@ -131,4 +130,7 @@ button:hover {
   to {
     transform: rotate(360deg);
   }
+}
+header{
+  
 }

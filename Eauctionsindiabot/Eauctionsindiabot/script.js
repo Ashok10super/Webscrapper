@@ -41,10 +41,12 @@ function generateExcel() {
 
 function getFormData() {
   // Get form data
+  const auctionId = document.getElementById("auctionId").value;
   const category = document.getElementById("category").value;
   const bankName = document.getElementById("bankName").value;
   const state = document.getElementById("state").value;
   const city = document.getElementById("city").value;
+  const area = document.getElementById("area").value;
   const maxPrice = document.getElementById("maxPrice").value;
   const minPrice = document.getElementById("minPrice").value;
   const auctionStartDate = document.getElementById("auctionStartDate").value;
@@ -52,10 +54,12 @@ function getFormData() {
   const tenderLastDate = document.getElementById("tenderLastDate").value;
   // Return as an object
   return {
+    auctionId,
     category,
     bankName,
     state,
     city,
+    area,
     maxPrice,
     minPrice,
     auctionStartDate,

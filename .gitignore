@@ -1,13 +1,9 @@
 .vscode
-balajipride.pdf
-example.py
-new.pdf
-pdfbold.py
-property.xlsx
-properties.xlsx
 .venv/
 __pycache__/
 .env
-
+Eauctionsindiabot/_init_.py
+Eauctionsindiabot/Eauctionsindiabot.egg-info
+Baanknetextract.xlsx
 
 

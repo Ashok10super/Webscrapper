@@ -13,7 +13,7 @@ session = requests.session()
 def get_total_property_list():
     url = "https://baanknet.com/eauction-psb/api/property-listing-data/1?page=0&size=10"
     payload = {
-        "city": "Chennai",
+        "city": "Bengaluru",
         "possessionType":["Physical"],
         "priceFrom": "0",
         "priceTo": "1000000000",
@@ -73,7 +73,6 @@ def get_propId(total_prop_count, url, payload, headers):
 
 def fetch_property_details(propId_list,headers):
     property_list = []
-    total_valid_prperty = 0 #keeps the count of the valid properties
     for prop in propId_list:
         prop_url = "https://baanknet.com/eauction-psb/api/view-property-detail/"+str(prop)+"/1"
         print(prop_url)
@@ -104,13 +103,9 @@ def fetch_property_details(propId_list,headers):
                 Auction_start_date = auction_details.get('Auctionstartdate')
                 if Auction_start_date is None:
                     continue
-                if not is_auction_date_valid(Auction_start_date,"23-03-2025 10:00"):
-                    print(Auction_start_date)
-                    print('CONTINUE')
-                    continue
                 else:
-                    total_valid_prperty=total_valid_prperty+1
-                    print('Valid property date->',Auction_start_date)
+                    if not is_auction_date_valid(Auction_start_date,"10-02-2025 10:00"):
+                        continue
                 Auction_end_date = auction_details.get('AuctionEndDate')
                 print("Auction end date->", Auction_end_date if Auction_end_date is not None else "Not Available")
 
@@ -161,11 +156,14 @@ def fetch_property_details(propId_list,headers):
                 property_list.append(construct_dict(auction_id=Auction_id,bank_name=Bankname,emd=Emd,branch_name=Branchname,service_provider=Service_provider,
                             reserve_price=Reserve_price,contact_details=Contact_details,discription=Description,state=State,city=City,
                             area=Area,borrower_name=Borrower_name,asset_category="None",property_type=Property_type,auction_type=Auction_type,
-                            auction_start=Auction_start_date,auction_end=Auction_start_date,sub_end="None",sale_notice=Sale_notice_link,Possession_type=possession))   
+                            auction_start=Auction_start_date,auction_end=Auction_start_date,sub_end="None",sale_notice=Sale_notice_link,Possession_type=possession))
+                print("Latest_prop_list",property_list)
+   
         except requests.exceptions.RequestException as e:
-         print("Error happend while making api call->",e) 
+            print("Error happend while making api call->",e) 
 
-    print("Total number of valid property->",total_valid_prperty) 
+    print(property_list)
+
     create_excel(prop_list=property_list)
 
 
@@ -173,7 +171,7 @@ def fetch_property_details(propId_list,headers):
 def create_excel(prop_list):
     try:
         df = pd.DataFrame(prop_list)
-        df.to_excel('Baanknetextract.xlsx',index=False)
+        df.to_excel('/home/ashok/scrapper/Baanknetbot/Baanknetextract.xlsx',index=False)
         print("Excel successfully created")
     except Exception as e:
         print(e)    

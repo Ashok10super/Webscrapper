@@ -5,14 +5,12 @@ from flask_cors import CORS
 from bs4 import BeautifulSoup  # importing beauttiful soup module
 import pandas as pd  # importing pandas for creating excel file
 from datetime import datetime  # importing datetime object to format the date
-from imageextract import extract_text
-from gemini import get_outstanding
 
 
 app = Flask(__name__)
 # Import CORS
 # CORS(app)
-CORS(app, resources={r"/generate-excel": {"origins": "*"}})
+CORS(app, resources={r"/generate-excel": {"origins": "http://127.0.0.1:5501"}})
 
 #one tcp/ip 3-way handshake is made to the server and using the instance we are making repeated
 session = requests.session()
@@ -21,7 +19,11 @@ session = requests.session()
 @app.route("/generate-excel", methods=["POST"])
 def generate_excel():
     data = request.json
-    excel_file = scrapperwithoutAuctionId(data)
+
+    Auction_id = data["auctionId"]
+    if Auction_id == "":
+        # check the total number of properties
+        excel_file = scrapperwithoutAuctionId(data)
     # print(data.AuctionId)
 
     # Create a new Excel workbook in memory
@@ -42,7 +44,9 @@ def scrapperwithoutAuctionId(data):
     state = data["state"]
     city = data["city"]
     bank = data["bankName"]
- # This is additional information given by the user to filter out the properties
+    area = data[
+        "area"
+    ]  # This is additional information given by the user to filter out the properties
     maxPrice = data["maxPrice"]
     minPrice = data["minPrice"]
     auctionStartDate = data["auctionStartDate"]
@@ -124,7 +128,8 @@ def scrapperwithoutAuctionId(data):
             #         url = "https://www.eauctionsindia.com" + str(auction_link)
             #         link.append(url)   
         return vist_and_construct_excel(
-            link
+            link,
+            area,
         )
     else:
         response = session.get(url=url)
@@ -138,7 +143,7 @@ def scrapperwithoutAuctionId(data):
                 print("auction_link", auction_link)
                 url = "https://www.eauctionsindia.com" + str(auction_link)
                 link.append(url)
-        return vist_and_construct_excel(link)
+        return vist_and_construct_excel(link, area)
 
     # print("targetd links->", target_divs)  # print all the links on the page
 
@@ -155,14 +160,12 @@ def scrapperwithoutAuctionId(data):
 
 
 def vist_and_construct_excel(
-    link
+    link,
+    area,
 ):
     print(link)
     properties_list = []  # Stores all the properties in a list of dict
-    i=0 # iteration for breaking the loop
     for url in link:
-        i=i+1
-        print("No of iteration ->",i)
         try:
             response = session.get(url, timeout=45)
         except requests.exceptions.RequestException as e:
@@ -337,15 +340,8 @@ def vist_and_construct_excel(
                 )
         else:
             sale_notice_url = " "
-
-        if sale_notice_url!=" " and "pdf" not in sale_notice_url:
-          print("sale_notice",sale_notice_url)
-          sale_notice_text = extract_text(sale_notice_url) #extarct the text from the sale notice
-          print("salen_notice_text",sale_notice_text)
-          outstanding_possession =  get_outstanding(sale_notice_text,borrower_name)
-        else:
-            print("salenotice contains pdf")
-            outstanding_possession = " "
+        print("final sales notice url", sale_notice_url)
+        print("Im done")
         properties_list.append(
             construct_dict(
                 auction_id=Auction_id,
@@ -355,7 +351,7 @@ def vist_and_construct_excel(
                 service_provider=service_provider,
                 reserve_price=reserve_price,
                 contact_details=contact_details,
-                description=description_text,
+                discription=description_text,
                 state=state,
                 city=city,
                 area=areas,
@@ -367,7 +363,7 @@ def vist_and_construct_excel(
                 auction_end=auction_end,
                 sub_end=sub_end,
                 sale_notice=sale_notice_url,
-                outstanding_possession_details=outstanding_possession
+                Possession_type=""
             )
         )
     print("This is properties list :", properties_list)
@@ -394,7 +390,7 @@ def construct_dict(
     auction_end,
     sub_end,
     sale_notice,
-    outstanding_possession_details,
+    Possession_type,
 ):
     temp_dict = {
         "Account name": auction_id + "-" + bank_name + "-",
@@ -417,7 +413,7 @@ def construct_dict(
         "Auction End": auction_end,
         "Sub End": sub_end,
         "sale_notice": sale_notice,
-        "outsanding_posession_details":outstanding_possession_details
+        "Possession_type":Possession_type,
     }
 
     return temp_dict

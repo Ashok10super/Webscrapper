@@ -1,0 +1,6 @@
+README.md
+setup.py
+Eauctionsindiabot.egg-info/PKG-INFO
+Eauctionsindiabot.egg-info/SOURCES.txt
+Eauctionsindiabot.egg-info/dependency_links.txt
+Eauctionsindiabot.egg-info/top_level.txt
