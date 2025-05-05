@@ -6,8 +6,8 @@ from bs4 import BeautifulSoup  # importing beauttiful soup module
 import pandas as pd  # importing pandas for creating excel file
 from datetime import datetime  # importing datetime object to format the date
 from imageextract import extract_text
-from gemini import get_outstanding
-
+from gemini import get_outstanding,area_and_hobli
+from database import get_connection,is_property_already_there,update_the_prop_status #database connection and its operations
 
 app = Flask(__name__)
 # Import CORS
@@ -20,8 +20,9 @@ session = requests.session()
 
 @app.route("/generate-excel", methods=["POST"])
 def generate_excel():
+    conn = get_connection() #connect to the db before staring tos scrap data
     data = request.json
-    excel_file = scrapperwithoutAuctionId(data)
+    excel_file = scrapperwithoutAuctionId(data,conn)
     # print(data.AuctionId)
 
     # Create a new Excel workbook in memory
@@ -35,7 +36,7 @@ def generate_excel():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
-def scrapperwithoutAuctionId(data):
+def scrapperwithoutAuctionId(data,conn):
 
     auction_id = None  # Auction id used to fetch details of request
     category = data["category"]  # Removed from the search list
@@ -124,7 +125,7 @@ def scrapperwithoutAuctionId(data):
             #         url = "https://www.eauctionsindia.com" + str(auction_link)
             #         link.append(url)   
         return vist_and_construct_excel(
-            link
+            link,conn
         )
     else:
         response = session.get(url=url)
@@ -138,7 +139,7 @@ def scrapperwithoutAuctionId(data):
                 print("auction_link", auction_link)
                 url = "https://www.eauctionsindia.com" + str(auction_link)
                 link.append(url)
-        return vist_and_construct_excel(link)
+        return vist_and_construct_excel(link,conn)
 
     # print("targetd links->", target_divs)  # print all the links on the page
 
@@ -155,11 +156,14 @@ def scrapperwithoutAuctionId(data):
 
 
 def vist_and_construct_excel(
-    link
+    link,conn
 ):
     print(link)
     properties_list = []  # Stores all the properties in a list of dict
+    properties_sale_notice_linkstext = dict()
+    print("Total number of properties",len(link))
     i=0 # iteration for breaking the loop
+    j=0 #inserted values
     for url in link:
         i=i+1
         print("No of iteration ->",i)
@@ -180,6 +184,14 @@ def vist_and_construct_excel(
         auction_text = auction_id_class.get_text(strip=True)
         Auction_id = auction_text.split("#")[-1].strip()
         print(Auction_id)
+  
+        #check if the auction is already present or not
+        if(is_property_already_there(auctionid=Auction_id,coll=conn)):
+            #update the property status to  old
+            print('property already there')
+            print(update_the_prop_status(auction_id=Auction_id,coll=conn))
+            continue
+
         bank_name_element = soup.find("strong", text="Bank Name : ").find_next_sibling(
             "span"
         )
@@ -236,14 +248,12 @@ def vist_and_construct_excel(
 
         # Extract Description
         description_div = soup.find_all("div", class_="mb-4")
-        print("All the mb-4",description_div)
         description = description_div[5]
-        print("Length of description->",len(description_div))
-        print("Description-div->",description)
         description_text = (
             description.find("p").text if description.find("p") else "No <p> tag found"
         )
         print("Description", description_text)
+       
         # Extract State
         state_element = soup.find("strong", text="Province/State : ").find_next("a")
         state = state_element.get_text(strip=True) if state_element else None
@@ -255,6 +265,8 @@ def vist_and_construct_excel(
         # Extract Area
         area_element = soup.find("strong", text="Area/Town : ").find_next("span")
         areas = area_element.get_text(strip=True) if area_element else None
+
+        # hobli  = area_and_hobli(description=description_text) 
 
         # Extract Borrower Name
         borrower_name_element = soup.find(
@@ -333,21 +345,27 @@ def vist_and_construct_excel(
                 sale_notice_url = (
                     "https://www.eauctionsindia.com" + sale_notice_element["href"]
                     if sale_notice_element
-                    else ""
+                    else " "
                 )
         else:
             sale_notice_url = " "
 
         if sale_notice_url!=" " and "pdf" not in sale_notice_url:
           print("sale_notice",sale_notice_url)
-          sale_notice_text = extract_text(sale_notice_url) #extarct the text from the sale notice
-          print("salen_notice_text",sale_notice_text)
-          outstanding_possession =  get_outstanding(sale_notice_text,borrower_name)
+          if sale_notice_url in properties_sale_notice_linkstext: #check if the salenotice text is already present or not
+              print("salenotice text already there no fetch")
+              text = properties_sale_notice_linkstext.get(sale_notice_url)
+              outstanding_amount = get_outstanding(text=text,borrower_name=borrower_name,emd=emd)
+             
+          else:
+              print("No link found extract the text")
+              sale_notice_text = extract_text(sale_notice_url) #extarct the text from the sale notice
+              properties_sale_notice_linkstext[sale_notice_url]=sale_notice_text
+              outstanding_amount = get_outstanding(text=sale_notice_text,borrower_name=borrower_name,emd=emd)
         else:
             print("salenotice contains pdf")
-            outstanding_possession = " "
-        properties_list.append(
-            construct_dict(
+            outstanding_amount = " "
+        constructed_dict = construct_dict(
                 auction_id=Auction_id,
                 bank_name=bank_name,
                 emd=emd,
@@ -367,8 +385,17 @@ def vist_and_construct_excel(
                 auction_end=auction_end,
                 sub_end=sub_end,
                 sale_notice=sale_notice_url,
-                outstanding_possession_details=outstanding_possession
+                outstanding_amount=outstanding_amount,
+                property_status = "New"
             )
+        #push the extracted details to the mongodb
+        try:
+            get_connection().insert_one(constructed_dict)
+            print("inserted successfully")
+        except Exception as e:
+            print(e)    
+        properties_list.append(
+           constructed_dict
         )
     print("This is properties list :", properties_list)
     return construct_excel(properties=properties_list)
@@ -394,7 +421,8 @@ def construct_dict(
     auction_end,
     sub_end,
     sale_notice,
-    outstanding_possession_details,
+    outstanding_amount,
+    property_status
 ):
     temp_dict = {
         "Account name": auction_id + "-" + bank_name + "-",
@@ -417,7 +445,8 @@ def construct_dict(
         "Auction End": auction_end,
         "Sub End": sub_end,
         "sale_notice": sale_notice,
-        "outsanding_posession_details":outstanding_possession_details
+        "outsanding_amount":outstanding_amount,
+        "property_status":property_status
     }
 
     return temp_dict
@@ -433,6 +462,7 @@ def validate_area_category(area, property_area):
 
 
 def construct_excel(properties):
+    print("Total number of new properties->",len(properties))
     df = pd.DataFrame(properties)
     # Save the DataFrame to an Excel file
     print("im from excel")

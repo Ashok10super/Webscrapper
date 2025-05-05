@@ -1,27 +1,30 @@
 import requests
 import pandas as pd
 from datetime import datetime
+from Eauctionsindiabot import database
 # import sys
 # sys.path.append('/home/ashok/scrapper/Eauctionsindiabot/Bot.py')
 # from Eauctionsindiabot.Bot import construct_excel
 
 session = requests.session()
 
+conn = database.get_connection()
+# print(conn)
 # API URL and payload
-
 
 def get_total_property_list():
     url = "https://baanknet.com/eauction-psb/api/property-listing-data/1?page=0&size=10"
     payload = {
         "city": "Chennai",
-        "possessionType":["Physical"],
         "priceFrom": "0",
         "priceTo": "1000000000",
         "sortBy": "3",
        
     }
+    
 
-    headers = {"Content-Type": "application/json"}
+    headers = {"Content-Type": "application/json",
+               "referer":"https://baanknet.com/"}
 
     # Step 1: Fetch data from API
     response = session.post(url=url, json=payload, headers=headers, verify=False)
@@ -30,12 +33,12 @@ def get_total_property_list():
         print("Request successful")
         data = response.json()  # Convert JSON response to Python dictionary
         print("Total count->", data["totalCount"])
-        get_propId(
-            total_prop_count=data["totalCount"],
-            url=url,
-            payload=payload,
-            headers=headers,
-        )
+        # get_propId(
+        #     total_prop_count=data["totalCount"],
+        #     url=url,
+        #     payload=payload,
+        #     headers=headers,
+        # )
 
 
 def get_propId(total_prop_count, url, payload, headers):
