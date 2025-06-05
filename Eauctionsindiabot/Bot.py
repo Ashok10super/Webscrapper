@@ -7,7 +7,7 @@ import pandas as pd  # importing pandas for creating excel file
 from datetime import datetime  # importing datetime object to format the date
 from imageextract import extract_text
 from gemini import get_outstanding,area_and_hobli
-from database import get_connection,is_property_already_there,update_the_prop_status #database connection and its operations
+from database import get_connection,is_property_already_there,update_the_prop_status,get_today_coll #database connection and its operations
 
 app = Flask(__name__)
 # Import CORS
@@ -169,11 +169,11 @@ def vist_and_construct_excel(
         print("No of iteration ->",i)
         try:
             response = session.get(url, timeout=45)
+            if response.status_code != 200:
+             print("Targeted website is down")
+             return "Targeted website is down"
         except requests.exceptions.RequestException as e:
             print(f"An error occurred: {e}")
-        if response.status_code != 200:
-            print("Targeted website is down")
-            return "Targeted website is down"
 
         soup = BeautifulSoup(response.text, "html.parser")
         auction_id_class = soup.find(class_="text-dark fw-bold")
@@ -187,10 +187,10 @@ def vist_and_construct_excel(
   
         #check if the auction is already present or not
         if(is_property_already_there(auctionid=Auction_id,coll=conn)):
-            #update the property status to  old
-            print('property already there')
-            print(update_the_prop_status(auction_id=Auction_id,coll=conn))
-            continue
+            #update the property status to old
+                print('property already there')
+                print(update_the_prop_status(auction_id=Auction_id,coll=conn))
+                continue
 
         bank_name_element = soup.find("strong", text="Bank Name : ").find_next_sibling(
             "span"
@@ -361,6 +361,7 @@ def vist_and_construct_excel(
               print("No link found extract the text")
               sale_notice_text = extract_text(sale_notice_url) #extarct the text from the sale notice
               properties_sale_notice_linkstext[sale_notice_url]=sale_notice_text
+              print("Extraction completed waiting for gemini response")
               outstanding_amount = get_outstanding(text=sale_notice_text,borrower_name=borrower_name,emd=emd)
         else:
             print("salenotice contains pdf")
@@ -390,8 +391,10 @@ def vist_and_construct_excel(
             )
         #push the extracted details to the mongodb
         try:
-            get_connection().insert_one(constructed_dict)
-            print("inserted successfully")
+            
+                get_connection().insert_one(constructed_dict)   
+                get_today_coll().insert_one(constructed_dict)
+                print("inserted into two collections successfully")
         except Exception as e:
             print(e)    
         properties_list.append(
@@ -438,14 +441,14 @@ def construct_dict(
         "City": city,
         "Area": area,
         "Borrower Name": borrower_name,
-        "Asset Category": asset_category,
+        "AssetCategory": asset_category,
         "Property Type": property_type,
         "Auction Type": auction_type,
         "Auction Start": auction_start,
         "Auction End": auction_end,
         "Sub End": sub_end,
         "sale_notice": sale_notice,
-        "outsanding_amount":outstanding_amount,
+        "outstanding_amount":outstanding_amount,
         "property_status":property_status
     }
 

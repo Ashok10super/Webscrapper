@@ -2,7 +2,8 @@
 .venv/
 __pycache__/
 .env
-Eauctionsindiabot/_init_.py
+__init__.py/
+Eauctionsindiabot/__pycache__
 Eauctionsindiabot/Eauctionsindiabot.egg-info
 Baanknetextract.xlsx
 

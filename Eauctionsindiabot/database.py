@@ -1,4 +1,5 @@
 import pymongo
+import pymongo.mongo_client
 
 
 def get_connection():
@@ -11,7 +12,17 @@ def get_connection():
     except Exception as e:
         print(e)
         return e
-
+    
+def get_today_coll(): 
+    database_url = "mongodb+srv://developermybankauction:xlPPfXwtFjuOJ4vh@cluster0.j4zjk.mongodb.net/Zbot?retryWrites=true&w=majority&appName=Cluster0" 
+    try:
+        conn = pymongo.MongoClient(database_url)
+        db = conn['Zbot']
+        coll = db['today']
+        return coll
+    except Exception as e:
+        print(e) 
+        return e 
 def is_property_already_there(auctionid,coll):
     try:
         is_property_there = coll.find_one({'Auction Id':auctionid})
