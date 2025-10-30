@@ -1,10 +1,6 @@
 import requests
-import pandas as pd
 from datetime import datetime
-from Eauctionsindiabot import database
-# import sys
-# sys.path.append('/home/ashok/scrapper/Eauctionsindiabot/Bot.py')
-# from Eauctionsindiabot.Bot import construct_excel
+from eauctionsindiabot import database
 
 session = requests.session()
 

@@ -1,10 +1,4 @@
-.vscode
-.venv/
-__pycache__/
+**/__pycache__/
+venv/
 .env
 __init__.py/
-Eauctionsindiabot/__pycache__
-Eauctionsindiabot/Eauctionsindiabot.egg-info
-Baanknetextract.xlsx
-
-

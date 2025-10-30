@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from Eauctionsindiabot.Bot import vist_and_construct_excel
+from eauctionsindiabot.Bot import vist_and_construct_excel
 
 
 def url():
