@@ -1,72 +1,33 @@
-from flask import Flask, request, send_file
+
 import requests
-from io import BytesIO
-from flask_cors import CORS
 from bs4 import BeautifulSoup  # importing beauttiful soup module
-import pandas as pd  # importing pandas for creating excel file
-from datetime import datetime  # importing datetime object to format the date
-from imageextract import extract_text
-from gemini import get_outstanding,area_and_hobli
-from database import get_connection,is_property_already_there,update_the_prop_status,get_today_coll #database connection and its operations
+from datetime import datetime,date
 
-app = Flask(__name__)
-# Import CORS
-# CORS(app)
-CORS(app, resources={r"/generate-excel": {"origins": "*"}})
+from pymongo.errors import DuplicateKeyError
+from requests.sessions import HTTPAdapter
+from urllib3 import Retry
 
-#one tcp/ip 3-way handshake is made to the server and using the instance we are making repeated
+from image_extractor.imageextract import extract_text
+from gemini_api.gemini import get_outstanding
+from service.property_service import is_property_already_there  #database connection and its operations
+from utils.utlis import get_auction_id
+from custom_exceptions.exceptions import StartScrapperError, SingleScrapperError, DatabaseError
+
+#one tcp/ip 3-way handshake is made to the server and using the instance we are making repeated requests
 session = requests.session()
+headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+        "Referer": "https://www.eauctionsindia.org/",
+        "Cookie": "wssplashchk=99bcfb9ff292e9266b65b56e677553d7bf326f02.1754305132.1"
+    }
+session.headers.update(headers)
+retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
+session.mount("https://", HTTPAdapter(max_retries=retries))
 
+def start_scrapping(state,date,conn):
 
-@app.route("/generate-excel", methods=["POST"])
-def generate_excel():
-    conn = get_connection() #connect to the db before staring tos scrap data
-    data = request.json
-    excel_file = scrapperwithoutAuctionId(data,conn)
-    # print(data.AuctionId)
-
-    # Create a new Excel workbook in memory
-
-    # Send the file as a downloadable attachment  file_name = +'property.xlsx'
-
-    return send_file(
-        excel_file,
-        as_attachment=True,
-        download_name="auction_data.xlsx",
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
-
-def scrapperwithoutAuctionId(data,conn):
-
-    auction_id = None  # Auction id used to fetch details of request
-    category = data["category"]  # Removed from the search list
-    state = data["state"]
-    city = data["city"]
-    bank = data["bankName"]
- # This is additional information given by the user to filter out the properties
-    maxPrice = data["maxPrice"]
-    minPrice = data["minPrice"]
-    auctionStartDate = data["auctionStartDate"]
-    auctionEndDate = data["auctionEndDate"]
-    SubmissionLastDate = [data["tenderLastDate"]]  # This is also a additional filed
-
-    if category == "select-category":
-        category = ""
-    new_bank = bank.replace(" ", "+")
-    print(new_bank)
-    page = 1
-    url = construct_url(
-        page=page,
-        category=category,
-        state=state,
-        city=city,
-        new_bank=bank,
-        min_price=minPrice,
-        max_price=maxPrice,
-        auctionStartDate=auctionStartDate,
-        auctionEndDate=auctionEndDate,
-    )
-    link = []
+    url = f'https://www.eauctionsindia.com/search?keyword=&category=residential&state={state}&city=&area=&bank=&from={date}&to=&min_price=&max_price='
+    link = [] #stores all the links from the pagination
     # create a session for connection pooling
     # print(url)
     print("Base url->", url)
@@ -74,13 +35,15 @@ def scrapperwithoutAuctionId(data,conn):
         response = session.get(url, timeout=45)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
+        raise StartScrapperError(e) from e
+
     # Check response status
     if response.status_code == 200:
         print("Fetching success")
         soup = BeautifulSoup(response.text, "html.parser")
-
     else:
         print("Unexpected status code:", response.status_code)
+        raise StartScrapperError("The status code was not 200",response.status_code)
     # check for the pagination
     pagination = soup.find("ul", class_="pagination")
     print("pagination", pagination)
@@ -89,22 +52,13 @@ def scrapperwithoutAuctionId(data,conn):
         last_number = int(last_page_link.text)
         print("This is the last number->",last_number)
         for page in range(1, last_number):
-            url = construct_url(
-                page=page,
-                category=category,
-                state=state,
-                city=city,
-                new_bank=bank,
-                min_price=minPrice,
-                max_price=maxPrice,
-                auctionStartDate=auctionStartDate,
-                auctionEndDate=auctionEndDate,
-            )
+            url = f'https://www.eauctionsindia.com/search/{page}?category=residential&state={state}&from={date}'
             print("This is the pagination url", url)
             try:
                 response = session.get(url=url, timeout=45)
             except requests.exceptions.RequestException as e:
                 print(f"An error occurred: {e}")
+                raise StartScrapperError(e) from e
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, "html.parser")
                 contanier_div = soup.findAll("div", class_="row mb-3")
@@ -112,22 +66,28 @@ def scrapperwithoutAuctionId(data,conn):
                     auction_link_temp = i.find("div",class_="col-lg-9 col-md-9 col-sm-12 col-xs-12")
                     if auction_link_temp is not None:
                         auction_link = auction_link_temp.find_all("div",class_="row")[-1]
-                        print("auction_link",auction_link)
                         auction_links = (auction_link.find("a")["href"])
                         print("auction link->",auction_links)
-                        url = "https://www.eauctionsindia.com" + str(auction_links)
-                        link.append(url)
+                        auction_id = get_auction_id(auction_links)#extracts the auction_id from the url
+                        if is_property_already_there(auctionid=auction_id,coll=conn):
+                         print("property already there=>",auction_id)
+                         continue
+                        else:
+                          url = "https://www.eauctionsindia.com" + str(auction_links)
+                          link.append(url)
             # for div in target_divs:
             #     link_tag = div.find("a")
             #     if link_tag and "href" in link_tag.attrs:
             #         auction_link = link_tag["href"]
             #         print("auction_link", auction_link)
             #         url = "https://www.eauctionsindia.com" + str(auction_link)
-            #         link.append(url)   
-        return vist_and_construct_excel(
+            #         link.append(url)
+            from config import log_check_list,Status
+            log_check_list["start_scrapper_info"]["status"] = Status.SUCCESS
+        return vist_and_save_to_db(
             link,conn
         )
-    else:
+    else: #if- pagination is none then else block will execute
         response = session.get(url=url)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, "html.parser")
@@ -139,42 +99,30 @@ def scrapperwithoutAuctionId(data,conn):
                 print("auction_link", auction_link)
                 url = "https://www.eauctionsindia.com" + str(auction_link)
                 link.append(url)
-        return vist_and_construct_excel(link,conn)
-
-    # print("targetd links->", target_divs)  # print all the links on the page
-
-    # print("Next url", next_url["href"])
-    # if target_next_page and "href" in target_next_page.attrs:
-    #     print("Next page link:", target_next_page["href"])
-    # else:
-    #     print("Next page link not found or href attribute is missing.")
-    # store all the a tag
-    # for div in target_divs:
-    #   p_tag = div.find()  # Find the first <p> tag in the current <div>
-    # if p_tag is not None:
-    #     p_tags.append(p_tag)  # Add the <pauction_data_dict[td_data[i].get_text()] = td_data[i + 1].get_text()
+        return vist_and_save_to_db(link,conn)
 
 
-def vist_and_construct_excel(
-    link,conn
-):
-    print(link)
+def vist_and_save_to_db(link,conn):
+    print('New properties List->',link)
+    total_new_properties = len(link)
     properties_list = []  # Stores all the properties in a list of dict
     properties_sale_notice_linkstext = dict()
-    print("Total number of properties",len(link))
-    i=0 # iteration for breaking the loop
-    j=0 #inserted values
+    print("Total number of properties",total_new_properties)
+    i=0 # iteration flag
     for url in link:
         i=i+1
         print("No of iteration ->",i)
         try:
-            response = session.get(url, timeout=45)
+            response = session.get(url, timeout=60)
             if response.status_code != 200:
-             print("Targeted website is down")
-             return "Targeted website is down"
+             print("Targeted url page is down so continue to next url",response.status_code)
+             continue
         except requests.exceptions.RequestException as e:
             print(f"An error occurred: {e}")
+            raise SingleScrapperError(e) from e
 
+        from config import log_check_list, Status
+        log_check_list["single_scrapper_info"]["status"] = Status.SUCCESS
         soup = BeautifulSoup(response.text, "html.parser")
         auction_id_class = soup.find(class_="text-dark fw-bold")
         print("Auction_id", auction_id_class)
@@ -183,14 +131,6 @@ def vist_and_construct_excel(
 
         auction_text = auction_id_class.get_text(strip=True)
         Auction_id = auction_text.split("#")[-1].strip()
-        print(Auction_id)
-  
-        #check if the auction is already present or not
-        if(is_property_already_there(auctionid=Auction_id,coll=conn)):
-            #update the property status to old
-                print('property already there')
-                print(update_the_prop_status(auction_id=Auction_id,coll=conn))
-                continue
 
         bank_name_element = soup.find("strong", text="Bank Name : ").find_next_sibling(
             "span"
@@ -315,7 +255,8 @@ def vist_and_construct_excel(
             if auction_start_element
             else None
         )
-
+        if auction_start:
+            auction_start_date = datetime.strptime(auction_start, '%d-%m-%Y %I:%M %p')
         # Extract Auction End Time
         auction_end_element = soup.find(
             "strong", text="Auction End Time : "
@@ -323,7 +264,8 @@ def vist_and_construct_excel(
         auction_end = (
             auction_end_element.get_text(strip=True) if auction_end_element else None
         )
-
+        if auction_end:
+            auction_end_date = datetime.strptime(auction_end,'%d-%m-%Y %I:%M %p')
         # Extract Application Submission End Date
         sub_end_element = soup.find(
             "strong", text="Application Subbmision Date : "
@@ -333,39 +275,41 @@ def vist_and_construct_excel(
         # Extract Sale Notice URL
         sale_notice_element = soup.find("strong", text="Sale Notice 1: ")
         print("Sale notice element", sale_notice_element)
+        sale_notice_url = " "  # default fallback
         if sale_notice_element:
-            sale_notice_element = sale_notice_element.find_next_sibling("span").find(
-                "a"
-            )
+            sale_notice_element = sale_notice_element.find_next_sibling("span").find("a")
             temp_sales_notice = sale_notice_element["href"]
+
             if "eauctionsindia" in str(temp_sales_notice):
                 print("Sale notice already contains link")
                 sale_notice_url = temp_sales_notice
             else:
-                sale_notice_url = (
-                    "https://www.eauctionsindia.com" + sale_notice_element["href"]
-                    if sale_notice_element
-                    else " "
+                sale_notice_url = " "
+
+        if sale_notice_url != " " and "pdf" not in sale_notice_url:
+            print("sale_notice", sale_notice_url)
+
+            # check if the sale notice text is already present
+            if sale_notice_url in properties_sale_notice_linkstext:
+                print("salenotice text already there no fetch")
+                text = properties_sale_notice_linkstext.get(sale_notice_url)
+                outstanding_amount = get_outstanding(
+                    text=text, borrower_name=borrower_name, emd=emd
+                )
+            else:
+                print("No link found extract the text")
+                sale_notice_text = extract_text(sale_notice_url, session)  # extract the text
+                properties_sale_notice_linkstext.update({sale_notice_url: sale_notice_text})
+                print("Extraction completed waiting for gemini response")
+                outstanding_amount = get_outstanding(
+                    text=sale_notice_text, borrower_name=borrower_name, emd=emd
                 )
         else:
-            sale_notice_url = " "
-
-        if sale_notice_url!=" " and "pdf" not in sale_notice_url:
-          print("sale_notice",sale_notice_url)
-          if sale_notice_url in properties_sale_notice_linkstext: #check if the salenotice text is already present or not
-              print("salenotice text already there no fetch")
-              text = properties_sale_notice_linkstext.get(sale_notice_url)
-              outstanding_amount = get_outstanding(text=text,borrower_name=borrower_name,emd=emd)
-             
-          else:
-              print("No link found extract the text")
-              sale_notice_text = extract_text(sale_notice_url) #extarct the text from the sale notice
-              properties_sale_notice_linkstext[sale_notice_url]=sale_notice_text
-              print("Extraction completed waiting for gemini response")
-              outstanding_amount = get_outstanding(text=sale_notice_text,borrower_name=borrower_name,emd=emd)
-        else:
-            print("salenotice contains pdf")
+            print("salenotice contains pdf or salenotice link is empty")
             outstanding_amount = " "
+            continue
+        today = date.today()
+        today_dt = datetime.combine(today, datetime.min.time())
         constructed_dict = construct_dict(
                 auction_id=Auction_id,
                 bank_name=bank_name,
@@ -382,27 +326,31 @@ def vist_and_construct_excel(
                 asset_category=asset_category,
                 property_type=property_type,
                 auction_type=auction_type,
-                auction_start=auction_start,
-                auction_end=auction_end,
+                auction_start_date=auction_start_date,
+                auction_end_date=auction_end_date,
                 sub_end=sub_end,
                 sale_notice=sale_notice_url,
                 outstanding_amount=outstanding_amount,
-                property_status = "New"
+                fetch_date = today_dt
             )
         #push the extracted details to the mongodb
         try:
-            
-                get_connection().insert_one(constructed_dict)   
-                get_today_coll().insert_one(constructed_dict)
-                print("inserted into two collections successfully")
+            conn.insert_one(constructed_dict)
+            print("inserted into collection successfully")
+        except DuplicateKeyError:
+            # This is NOT an error. It's expected behavior.
+            print(f"Auction ID already exists. Skipping.")
+            pass  # Just ignore it and continue
         except Exception as e:
-            print(e)    
-        properties_list.append(
-           constructed_dict
-        )
+            print("Error raised at single property insertion",e)
+            raise DatabaseError(f"Database connection failed: {e}") from e
+        properties_list.append(constructed_dict)
     print("This is properties list :", properties_list)
-    return construct_excel(properties=properties_list)
-
+    print("Total number of new properties->",len(properties_list))
+    from config import log_check_list,Status
+    log_check_list["gemini_api_info"]["status"] = Status.SUCCESS
+    log_check_list["tesseract_ocr_info"]["status"] = Status.SUCCESS
+    return len(properties_list)
 
 def construct_dict(
     auction_id,
@@ -420,12 +368,12 @@ def construct_dict(
     asset_category,
     property_type,
     auction_type,
-    auction_start,
-    auction_end,
+    auction_start_date,
+    auction_end_date,
     sub_end,
     sale_notice,
     outstanding_amount,
-    property_status
+    fetch_date
 ):
     temp_dict = {
         "Account name": auction_id + "-" + bank_name + "-",
@@ -444,78 +392,13 @@ def construct_dict(
         "AssetCategory": asset_category,
         "Property Type": property_type,
         "Auction Type": auction_type,
-        "Auction Start": auction_start,
-        "Auction End": auction_end,
+        "auction_start_date": auction_start_date,
+        "auction_end_date": auction_end_date,
         "Sub End": sub_end,
         "sale_notice": sale_notice,
         "outstanding_amount":outstanding_amount,
-        "property_status":property_status
+        "fetch_date": fetch_date
     }
 
     return temp_dict
-
-
-def validate_area_category(area, property_area):
-    cap_area = ""
-    if area == "":
-        return True
-    else:
-        cap_area = area.capitalize()
-        return cap_area == property_area
-
-
-def construct_excel(properties):
-    print("Total number of new properties->",len(properties))
-    df = pd.DataFrame(properties)
-    # Save the DataFrame to an Excel file
-    print("im from excel")
-    excel_file = BytesIO()
-    df.to_excel(excel_file, index=False)  # Save the DataFrame to the in-memory buffer
-    excel_file.seek(0)  # Reset the buffer to the beginning
-    # Return the in-memory Excel file (BytesIO object)
-    return excel_file
-
-
-def format_date(date):
-    date_time_obj = datetime.strptime(date, "%d-%m-%Y %I%M %p")
-    formatted_date_time = date_time_obj.strftime("%d-%m-%Y %I:%M %p")
-    return formatted_date_time
-
-def construct_url(
-    page,
-    category,
-    state,
-    city,
-    new_bank,
-    min_price,
-    max_price,
-    auctionStartDate,
-    auctionEndDate,
-):
-    url = (
-        "https://www.eauctionsindia.com/search/"
-        + str(page)
-        + "?"
-        + "&category="
-        + category
-        + "&state="
-        + state
-        + "&city="
-        + city
-        + "&bank="
-        + new_bank
-        + "+&min_price="
-        + min_price
-        + "&max_price="
-        + max_price
-        + "&from="
-        + auctionStartDate
-        + "&to="
-        + auctionEndDate
-    )
-    return url
-
-
-if __name__ == "__main__":
-    app.run(port=8080)
 
