@@ -1,0 +1,12 @@
+# My Project's Direct Dependencies
+Flask
+flask-cors
+gunicorn
+pymongo
+beautifulsoup4
+pytesseract
+pillow
+requests
+python-dotenv
+python-dateutil
+cffi
