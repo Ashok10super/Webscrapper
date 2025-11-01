@@ -1,5 +1,5 @@
 # 1. Use the official Python 3.10 image (from your logs)
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # 2. Set the working directory inside the container
 # This matches the path in your error logs
