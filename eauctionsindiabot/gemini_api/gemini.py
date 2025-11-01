@@ -1,12 +1,13 @@
 from json import JSONDecodeError
 import requests
 import json
-from eauctionsindiabot.custom_exceptions.exceptions import GeminiApiError
-
-api_key = "AIzaSyAs0f5cGePHI9qEjZWK2aju5umBQTTY-YM"
+from dotenv import load_dotenv
+load_dotenv()
+import os
 
 def get_outstanding(text,borrower_name,emd):
     #check if the text is not none
+    api_key = os.getenv('GEMINI_API_KEY')
     if text!= None:
         url ="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+api_key
         headers = {"Content-Type": "application/json"}
