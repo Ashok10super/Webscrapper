@@ -1,27 +1,22 @@
-# 1. Start from a standard Python image
+# 1. Use the official Python 3.10 image (from your logs)
 FROM python:3.10-slim
 
-# 2. Switch to root user to install system packages
-USER root
+# 2. Set the working directory inside the container
+# This matches the path in your error logs
+WORKDIR /eauctionsindiabot
 
-# 3. Install tesseract-ocr
-RUN apt-get update && apt-get install -y \
-    tesseract-ocr \
-    && rm -rf /var/lib/apt/lists/*
-
-# 4. Set the working directory in the container
-WORKDIR /
-
-# 5. Copy and install Python requirements
-# (This assumes requirements.txt is in your root. If not, tell me)
+# 3. Copy *only* the requirements file first
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# 6. Copy all your code into the container
-# (This will copy the 'webscrapper' folder into /)
+# 4. Install dependencies
+# This is done in its own step for better Docker layer caching
+RUN pip install -r requirements.txt
+
+# 5. Copy ALL other files from your project (main.py, bot.py, etc.)
+# This is the line that fixes your error.
 COPY . .
 
-# 7. Set the command to run the web server
-# --- THIS IS THE CORRECTED LINE ---
-# The path starts with 'webscrapper' because your WORKDIR is /
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 eauctionsindiabot.main:app
+# 6. Define the command to run your app
+# This uses the port 8080 from your logs and assumes your
+# FastAPI/Flask app object in main.py is named 'app'
+CMD ["gunicorn", "--workers", "1", "--threads", "8", "--bind", "0.0.0.0:8080", "main:app"]
