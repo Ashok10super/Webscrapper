@@ -3,7 +3,7 @@ FROM python:3.10-slim
 
 # 2. Set the working directory inside the container
 # This matches the path in your error logs
-WORKDIR /eauctionsindiabot
+WORKDIR /webscrapper
 
 # 3. Copy *only* the requirements file first
 COPY requirements.txt .
