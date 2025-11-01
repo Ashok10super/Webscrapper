@@ -62,7 +62,7 @@ def run_cron_job():
         log_check_list["tesseract_ocr_info"]["status"] = Status.FAILED
         script_log_conn.insert_one(log_check_list)
     finally:
-        return {"message": "fetch-failed"}
+        return {"message": "fetch-failed","error-messge":e}
 
 
 
