@@ -32,6 +32,6 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run main.py
-        run: python main.py
+        run: python eauctionsindiabot/main.py
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
