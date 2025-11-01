@@ -35,3 +35,4 @@ jobs:
         run: python -m eauctionsindiabot.main
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

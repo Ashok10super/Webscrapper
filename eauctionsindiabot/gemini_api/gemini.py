@@ -66,3 +66,5 @@ def area_and_hobli(description):
     except Exception as e:
         print(e)
         
+api_key = os.getenv('GEMINI_API_KEY')
+print(api_key)
