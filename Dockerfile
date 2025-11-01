@@ -24,4 +24,4 @@ COPY . .
 # 7. Set the command to run the web server
 # --- THIS IS THE CORRECTED LINE ---
 # The path starts with 'webscrapper' because your WORKDIR is /
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 Webscrapper.eauctionsindiabot.main:app
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 eauctionsindiabot.main:app

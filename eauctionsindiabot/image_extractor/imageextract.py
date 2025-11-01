@@ -1,5 +1,3 @@
-from logging import raiseExceptions
-
 from PIL import ImageEnhance
 import pytesseract
 from concurrent.futures import ProcessPoolExecutor, TimeoutError

@@ -1,12 +1,9 @@
-
 import requests
 from bs4 import BeautifulSoup  # importing beauttiful soup module
 from datetime import datetime,date
-
 from pymongo.errors import DuplicateKeyError
 from requests.sessions import HTTPAdapter
 from urllib3 import Retry
-
 from image_extractor.imageextract import extract_text
 from gemini_api.gemini import get_outstanding
 from service.property_service import is_property_already_there  #database connection and its operations
