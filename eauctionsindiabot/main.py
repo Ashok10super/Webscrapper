@@ -1,28 +1,14 @@
-from flask import Flask
-from dotenv import load_dotenv
-load_dotenv()
-import os
 from eauctionsindiabot.bot import start_scrapping
 from eauctionsindiabot.database.db_config import get_eauctionindiadb_connection,get_script_log_connection
 from eauctionsindiabot.custom_exceptions.exceptions import DatabaseError, StartScrapperError, GeminiApiError, TesseractOCRError,SingleScrapperError
 from datetime import datetime
 from eauctionsindiabot.config import log_check_list,Status
 
-app = Flask(__name__)
 
 
-@app.route("/health-check", methods=["GET"])
-def health_check():
-    return {"status": "ok"}
-
-# This is the endpoint Cloud Scheduler will call
-@app.route("/start-script", methods=["POST"])
-def run_cron_job():
-    """
-    Cloud Scheduler sends a POST request, so we listen for POST.
-    """
-    print("Cron job started!")
+if __name__ == "__main__":
     try:
+        print("Cron job started!")
         eauction_conn = get_eauctionindiadb_connection()
         script_log_conn = get_script_log_connection()
         log_check_list["database"]["status"] = Status.SUCCESS  # <-- EXPLICITLY LOG SUCCESS
@@ -36,7 +22,7 @@ def run_cron_job():
         log_check_list['total_properties_fetched'] = total_fetched_properties
         print("All states processed successfully.")
         script_log_conn.insert_one(log_check_list)
-        return {"message":"fetch-success"}
+        print("All states processed successfully.")
     except DatabaseError as e:
         print("database connection failed: ", e)
         log_check_list["database"]["error_message"] = str(e)
@@ -61,13 +47,6 @@ def run_cron_job():
         log_check_list["tesseract_ocr_info"]["error_message"] = str(e)
         log_check_list["tesseract_ocr_info"]["status"] = Status.FAILED
         script_log_conn.insert_one(log_check_list)
-    finally:
-        return {"message": "fetch-failed","error-messge":e}
-
-
-
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
 
 
 
