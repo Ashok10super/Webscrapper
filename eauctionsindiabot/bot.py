@@ -79,7 +79,7 @@ def start_scrapping(state,date,conn):
             #         print("auction_link", auction_link)
             #         url = "https://www.eauctionsindia.com" + str(auction_link)
             #         link.append(url)
-            from config import log_check_list,Status
+            from eauctionsindiabot.config import log_check_list,Status
             log_check_list["start_scrapper_info"]["status"] = Status.SUCCESS
         return vist_and_save_to_db(
             link,conn
@@ -118,7 +118,7 @@ def vist_and_save_to_db(link,conn):
             print(f"An error occurred: {e}")
             raise SingleScrapperError(e) from e
 
-        from config import log_check_list, Status
+        from eauctionsindiabot.config import log_check_list, Status
         log_check_list["single_scrapper_info"]["status"] = Status.SUCCESS
         soup = BeautifulSoup(response.text, "html.parser")
         auction_id_class = soup.find(class_="text-dark fw-bold")
@@ -344,7 +344,7 @@ def vist_and_save_to_db(link,conn):
         properties_list.append(constructed_dict)
     print("This is properties list :", properties_list)
     print("Total number of new properties->",len(properties_list))
-    from config import log_check_list,Status
+    from eauctionsindiabot.config import log_check_list,Status
     log_check_list["gemini_api_info"]["status"] = Status.SUCCESS
     log_check_list["tesseract_ocr_info"]["status"] = Status.SUCCESS
     return len(properties_list)
