@@ -1,9 +1,9 @@
-name: Run Python Script Daily at 11 AM
+name: Run Autonomous Scrapper
 
 on:
   workflow_dispatch:
   schedule:
-    # Runs at 11:00 AM IST (5:30 AM UTC)
+    # Runs at 7:00 AM
     - cron: '30 1 * * 1-5'
 
 jobs:
@@ -33,7 +33,6 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run main.py
-        working-directory: webscrapper/eauctionsindiabot
         run: python main.py
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
