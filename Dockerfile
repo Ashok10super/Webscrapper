@@ -19,4 +19,4 @@ COPY . .
 # 6. Define the command to run your app
 # This uses the port 8080 from your logs and assumes your
 # FastAPI/Flask app object in main.py is named 'app'
-CMD ["gunicorn", "--workers", "1", "--threads", "8", "--bind", "0.0.0.0:8080", "eauctionsindia.main:app"]
+CMD ["gunicorn", "--workers", "1", "--threads", "8", "--bind", "0.0.0.0:8080", "eauctionsindiabot.main:app"]
