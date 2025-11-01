@@ -27,7 +27,6 @@ jobs:
           tesseract --version
 
       - name: Install Python dependencies
-        working-directory: webscrapper
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
