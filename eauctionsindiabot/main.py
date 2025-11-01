@@ -3,8 +3,8 @@ from dotenv import load_dotenv
 load_dotenv()
 import os
 from eauctionsindiabot.bot import start_scrapping
-from database.db_config import get_eauctionindiadb_connection,get_script_log_connection
-from custom_exceptions.exceptions import DatabaseError, StartScrapperError, GeminiApiError, TesseractOCRError,SingleScrapperError
+from eauctionsindiabot.database.db_config import get_eauctionindiadb_connection,get_script_log_connection
+from eauctionsindiabot.custom_exceptions.exceptions import DatabaseError, StartScrapperError, GeminiApiError, TesseractOCRError,SingleScrapperError
 from datetime import datetime
 from eauctionsindiabot.config import log_check_list,Status
 

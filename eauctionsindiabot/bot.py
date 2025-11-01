@@ -4,11 +4,11 @@ from datetime import datetime,date
 from pymongo.errors import DuplicateKeyError
 from requests.sessions import HTTPAdapter
 from urllib3 import Retry
-from image_extractor.imageextract import extract_text
-from gemini_api.gemini import get_outstanding
-from service.property_service import is_property_already_there  #database connection and its operations
-from utils.utlis import get_auction_id
-from custom_exceptions.exceptions import StartScrapperError, SingleScrapperError, DatabaseError
+from eauctionsindiabot.image_extractor.imageextract import extract_text
+from eauctionsindiabot.gemini_api.gemini import get_outstanding
+from eauctionsindiabot.service.property_service import is_property_already_there  #database connection and its operations
+from eauctionsindiabot.utils.utlis import get_auction_id
+from eauctionsindiabot.custom_exceptions.exceptions import StartScrapperError, SingleScrapperError, DatabaseError
 
 #one tcp/ip 3-way handshake is made to the server and using the instance we are making repeated requests
 session = requests.session()

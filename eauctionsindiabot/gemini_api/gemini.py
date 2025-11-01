@@ -1,7 +1,7 @@
 from json import JSONDecodeError
 import requests
 import json
-from custom_exceptions.exceptions import GeminiApiError
+from eauctionsindiabot.custom_exceptions.exceptions import GeminiApiError
 
 api_key = "AIzaSyAs0f5cGePHI9qEjZWK2aju5umBQTTY-YM"
 

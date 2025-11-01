@@ -1,6 +1,6 @@
 import pymongo
 from pymongo.errors import PyMongoError
-from custom_exceptions.exceptions import DatabaseError
+from eauctionsindiabot.custom_exceptions.exceptions import DatabaseError
 import os
 import dotenv
 dotenv.load_dotenv()

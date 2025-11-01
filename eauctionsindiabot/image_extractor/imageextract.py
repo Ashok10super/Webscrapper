@@ -3,7 +3,7 @@ import pytesseract
 from concurrent.futures import ProcessPoolExecutor, TimeoutError
 from PIL import Image
 from io import BytesIO
-from custom_exceptions.exceptions import TesseractOCRError
+from eauctionsindiabot.custom_exceptions.exceptions import TesseractOCRError
 def extract_text(url, session):
     try:
         response = session.get(url, stream=True)
