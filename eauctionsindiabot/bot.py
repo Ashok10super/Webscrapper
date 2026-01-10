@@ -272,39 +272,37 @@ def vist_and_save_to_db(link,conn):
         # Extract Sale Notice URL
         sale_notice_element = soup.find("strong", text="Sale Notice 1: ")
         print("Sale notice element", sale_notice_element)
-        sale_notice_url = " "  # default fallback
+        sale_notice_url = ''
         if sale_notice_element:
             sale_notice_element = sale_notice_element.find_next_sibling("span").find("a")
-            temp_sales_notice = sale_notice_element["href"]
+            sale_notice_url = sale_notice_element.get("href", "").strip()
 
-            if "eauctionsindia" in str(temp_sales_notice):
-                print("Sale notice already contains link")
-                sale_notice_url = temp_sales_notice
-            else:
-                sale_notice_url = " "
+        # -------- Case: No sale notice link ----------
+        if not sale_notice_url:
+            print("No sale notice link found")
+            outstanding_amount = ""  # nothing to extract
 
-        if sale_notice_url != " " and "pdf" not in sale_notice_url:
-            print("sale_notice", sale_notice_url)
+        # -------- Case: PDF sale notice ----------
+        elif sale_notice_url.lower().endswith(".pdf"):
+            print("Sale notice is PDF – skipping extraction")
+            outstanding_amount = ""  # skip Gemini, but keep PDF link
 
-            # check if the sale notice text is already present
-            if sale_notice_url in properties_sale_notice_linkstext:
-                print("salenotice text already there no fetch")
-                text = properties_sale_notice_linkstext.get(sale_notice_url)
-                outstanding_amount = get_outstanding(
-                    text=text, borrower_name=borrower_name, emd=emd
-                )
-            else:
-                print("No link found extract the text")
-                sale_notice_text = extract_text(sale_notice_url, session)  # extract the text
-                properties_sale_notice_linkstext.update({sale_notice_url: sale_notice_text})
-                print("Extraction completed waiting for gemini response")
-                outstanding_amount = get_outstanding(
-                    text=sale_notice_text, borrower_name=borrower_name, emd=emd
-                )
+        # -------- Case: HTML sale notice ----------
         else:
-            print("salenotice contains pdf or salenotice link is empty")
-            outstanding_amount = " "
-            continue
+            if sale_notice_url in properties_sale_notice_linkstext:
+                print("Sale notice already cached")
+                text = properties_sale_notice_linkstext[sale_notice_url]
+            else:
+                print("Fetching sale notice text")
+                text = extract_text(sale_notice_url, session)
+                properties_sale_notice_linkstext[sale_notice_url] = text
+
+            print("Sending to Gemini")
+            outstanding_amount = get_outstanding(
+                text=text,
+                borrower_name=borrower_name,
+                emd=emd
+            )
         today = date.today()
         today_dt = datetime.combine(today, datetime.min.time())
         constructed_dict = construct_dict(
