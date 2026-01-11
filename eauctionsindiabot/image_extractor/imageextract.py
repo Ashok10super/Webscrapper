@@ -6,7 +6,9 @@ from io import BytesIO
 from eauctionsindiabot.custom_exceptions.exceptions import TesseractOCRError
 def extract_text(url, session):
     try:
+        print("This is the sale notice url",url)
         response = session.get(url, stream=True)
+        print("status code of the request",response.status_code)
         response.raise_for_status()
     except Exception as e:
         raise TesseractOCRError(e) from e
@@ -38,7 +40,7 @@ def extract_text(url, session):
 
 
 def get_text_from_image(processed_image):
-        # pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+        #pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
         custom_config = r'--psm 3'
         # Perform OCR using pytesseract
         text = "Sale-notice is complex to read"  # <-- FIX: Initialize text as None

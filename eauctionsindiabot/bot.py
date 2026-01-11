@@ -9,6 +9,7 @@ from eauctionsindiabot.gemini_api.gemini import get_outstanding
 from eauctionsindiabot.service.property_service import is_property_already_there  #database connection and its operations
 from eauctionsindiabot.utils.utlis import get_auction_id
 from eauctionsindiabot.custom_exceptions.exceptions import StartScrapperError, SingleScrapperError, DatabaseError
+from eauctionsindiabot.utils.utlis import sale_notice_url_formatter
 
 #one tcp/ip 3-way handshake is made to the server and using the instance we are making repeated requests
 session = requests.session()
@@ -294,7 +295,8 @@ def vist_and_save_to_db(link,conn):
                 text = properties_sale_notice_linkstext[sale_notice_url]
             else:
                 print("Fetching sale notice text")
-                text = extract_text(sale_notice_url, session)
+                formatted_notice_url = sale_notice_url_formatter(sale_notice_url)
+                text = extract_text(formatted_notice_url, session)
                 properties_sale_notice_linkstext[sale_notice_url] = text
 
             print("Sending to Gemini")
