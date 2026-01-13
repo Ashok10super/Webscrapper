@@ -274,6 +274,7 @@ def vist_and_save_to_db(link,conn):
         sale_notice_element = soup.find("strong", text="Sale Notice 1: ")
         print("Sale notice element", sale_notice_element)
         sale_notice_url = ''
+        formatted_notice_url = ''
         if sale_notice_element:
             sale_notice_element = sale_notice_element.find_next_sibling("span").find("a")
             sale_notice_url = sale_notice_element.get("href", "").strip()
@@ -286,6 +287,7 @@ def vist_and_save_to_db(link,conn):
         # -------- Case: PDF sale notice ----------
         elif sale_notice_url.lower().endswith(".pdf"):
             print("Sale notice is PDF – skipping extraction")
+            formatted_notice_url = sale_notice_url
             outstanding_amount = ""  # skip Gemini, but keep PDF link
 
         # -------- Case: HTML sale notice ----------
@@ -326,7 +328,7 @@ def vist_and_save_to_db(link,conn):
                 auction_start_date=auction_start_date,
                 auction_end_date=auction_end_date,
                 sub_end=sub_end,
-                sale_notice=sale_notice_url,
+                sale_notice=formatted_notice_url,
                 outstanding_amount=outstanding_amount,
                 fetch_date = today_dt
             )
