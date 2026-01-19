@@ -295,6 +295,7 @@ def vist_and_save_to_db(link,conn):
             if sale_notice_url in properties_sale_notice_linkstext:
                 print("Sale notice already cached")
                 text = properties_sale_notice_linkstext[sale_notice_url]
+                formatted_notice_url = sale_notice_url_formatter(sale_notice_url)
             else:
                 print("Fetching sale notice text")
                 formatted_notice_url = sale_notice_url_formatter(sale_notice_url)
@@ -330,7 +331,7 @@ def vist_and_save_to_db(link,conn):
                 sub_end=sub_end,
                 sale_notice=formatted_notice_url,
                 outstanding_amount=outstanding_amount,
-                fetch_date = today_dt
+                fetch_date = today_dt,
             )
         #push the extracted details to the mongodb
         try:
