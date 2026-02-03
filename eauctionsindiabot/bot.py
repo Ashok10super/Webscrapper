@@ -285,7 +285,7 @@ def vist_and_save_to_db(link,conn):
             outstanding_amount = ""  # nothing to extract
 
         # -------- Case: PDF sale notice ----------
-        elif sale_notice_url.lower().endswith(".pdf"):
+        elif "pdf" in sale_notice_url.lower():
             print("Sale notice is PDF – skipping extraction")
             formatted_notice_url = sale_notice_url
             outstanding_amount = ""  # skip Gemini, but keep PDF link
