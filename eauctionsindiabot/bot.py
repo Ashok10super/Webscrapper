@@ -46,7 +46,8 @@ def start_scrapping(state,date,conn):
     pagination = soup.find("ul", class_="pagination")
     print("pagination", pagination)
     if pagination != None:
-        last_page_link = pagination.find_all("a", class_="page-item page-link")[-1]
+        last_page_link = pagination.find_all("li","page-item")[-2]
+        print("List-tag",last_page_link)
         last_number = int(last_page_link.text)
         print("This is the last number->",last_number)
         for page in range(1, last_number):
