@@ -72,7 +72,7 @@ def start_scrapping(state,date,conn):
                          print("property already there=>",auction_id)
                          continue
                         else:
-                          url = "https://www.eauctionsindia.com" + str(auction_links)
+                          url = str(auction_links)
                           link.append(url)
             # for div in target_divs:
             #     link_tag = div.find("a")
