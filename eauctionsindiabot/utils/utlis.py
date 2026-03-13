@@ -1,7 +1,8 @@
+import re
 def get_auction_id(url:str):
-    splited_url = url.split("/")
-    auction_id  = splited_url[2]
-    return auction_id
+    pattern = r"https://www\.eauctionsindia\.com/properties/(\d+)"
+    match = re.search(pattern=pattern,string=url)
+    return match.group(1)
 
 
 def sale_notice_url_formatter(sales_notice):

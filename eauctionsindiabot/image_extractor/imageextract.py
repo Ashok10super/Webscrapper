@@ -38,9 +38,8 @@ def extract_text(url, session):
     return text
 
 
-
 def get_text_from_image(processed_image):
-        #pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+        # pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
         custom_config = r'--psm 3'
         # Perform OCR using pytesseract
         text = "Sale-notice is complex to read"  # <-- FIX: Initialize text as None

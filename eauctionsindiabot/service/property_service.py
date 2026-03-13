@@ -2,8 +2,8 @@
 
 def is_property_already_there(auctionid, coll):
     try:
-        is_property_there = coll.find_one({'Auction Id': auctionid})
-        if is_property_there != None:
+        is_property_there = coll.find_one({'Auction Id': str(auctionid)})
+        if is_property_there is not None:
             return True
         else:
             return False
