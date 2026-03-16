@@ -8,7 +8,7 @@ from eauctionsindiabot.image_extractor.imageextract import extract_text
 from eauctionsindiabot.gemini_api.gemini import get_outstanding
 from eauctionsindiabot.service.property_service import is_property_already_there  #database connection and its operations
 from eauctionsindiabot.utils.utlis import get_auction_id
-from eauctionsindiabot.custom_exceptions.exceptions import StartScrapperError, SingleScrapperError, DatabaseError
+from eauctionsindiabot.custom_exceptions.exceptions import StartScrapperError, SingleScrapperError, TesseractOCRError, GeminiApiError
 from eauctionsindiabot.utils.utlis import sale_notice_url_formatter
 
 #one tcp/ip 3-way handshake is made to the server and using the instance we are making repeated requests
@@ -284,6 +284,7 @@ def vist_and_save_to_db(link,conn):
         if not sale_notice_url:
             print("No sale notice link found")
             outstanding_amount = ""  # nothing to extract
+            continue
 
         # -------- Case: PDF sale notice ----------
         elif "pdf" in sale_notice_url.lower():
@@ -300,15 +301,24 @@ def vist_and_save_to_db(link,conn):
             else:
                 print("Fetching sale notice text")
                 formatted_notice_url = sale_notice_url_formatter(sale_notice_url)
-                text = extract_text(formatted_notice_url, session)
-                properties_sale_notice_linkstext[sale_notice_url] = text
-
+                try:
+                    text = extract_text(formatted_notice_url, session)
+                    properties_sale_notice_linkstext[sale_notice_url] = text
+                except TesseractOCRError as e:
+                    print(f"Tesseract failed for {url}, skipping outstanding amount extraction")
+                    log_check_list["tesseract_ocr_info"]["error_message"] = str(e)
+                    log_check_list["tesseract_ocr_info"]["status"] = Status.FAILED
             print("Sending to Gemini")
-            outstanding_amount = get_outstanding(
-                text=text,
-                borrower_name=borrower_name,
-                emd=emd
-            )
+            try:
+                outstanding_amount = get_outstanding(
+                    text=text,
+                    borrower_name=borrower_name,
+                    emd=emd
+                )
+            except GeminiApiError as e:
+                print(f"Gemini failed for {url}, skipping outstanding amount extraction")
+                log_check_list["gemini_api_info"]["error_message"] = str(e)
+                log_check_list["gemini_api_info"]["status"] = Status.FAILED
         today = date.today()
         today_dt = datetime.combine(today, datetime.min.time())
         constructed_dict = construct_dict(
@@ -344,7 +354,7 @@ def vist_and_save_to_db(link,conn):
             pass  # Just ignore it and continue
         except Exception as e:
             print("Error raised at single property insertion",e)
-            raise DatabaseError(f"Database connection failed: {e}") from e
+            raise SingleScrapperError(f"error raised at single scrapper: {e}",partial_count=len(properties_list)) from e
         properties_list.append(constructed_dict)
     print("This is properties list :", properties_list)
     print("Total number of new properties->",len(properties_list))

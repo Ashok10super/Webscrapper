@@ -1,3 +1,4 @@
+import pillow_avif
 from PIL import ImageEnhance
 import pytesseract
 from concurrent.futures import ProcessPoolExecutor, TimeoutError
@@ -17,8 +18,7 @@ def extract_text(url, session):
         response = session.get(url, stream=True)
         response.raise_for_status()
 
-        # Open the image using PIL
-        img = Image.open(BytesIO(response.content))
+        img = Image.open(BytesIO(response.content)).convert("RGB")
 
         # Pre-process the image before OCR
         processed_image = image_enchancer(image=img)
@@ -47,7 +47,7 @@ def get_text_from_image(processed_image):
             text = pytesseract.image_to_string(processed_image, lang='eng', config=custom_config, timeout=15)
         except RuntimeError as e:
                 print("Tesseract OCR timed out:", e)
-                pass
+                raise TesseractOCRError(e) from e
         # Return the extracted text
         return text
 

@@ -1,10 +1,22 @@
 class DatabaseError(Exception):
-    pass
+    def __init__(self, message, partial_count=0):
+        super().__init__(message)
+        self.partial_count = partial_count
 class StartScrapperError(Exception):
-    pass
+    def __init__(self, message, partial_count=0):
+        super().__init__(message)
+        self.partial_count = partial_count
+
 class SingleScrapperError(Exception):
-    pass
+    def __init__(self, message, partial_count=0):
+        super().__init__(message)
+        self.partial_count = partial_count
+
 class GeminiApiError(Exception):
-    pass
+    def __init__(self, message, partial_count=0):
+        super().__init__(message)
+        self.partial_count = partial_count
 class TesseractOCRError(Exception):
-    pass
+    def __init__(self, message, partial_count=0):
+        super().__init__(message)
+        self.partial_count = partial_count
