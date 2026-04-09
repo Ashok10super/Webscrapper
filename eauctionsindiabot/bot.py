@@ -10,14 +10,20 @@ from eauctionsindiabot.service.property_service import is_property_already_there
 from eauctionsindiabot.utils.utlis import get_auction_id
 from eauctionsindiabot.custom_exceptions.exceptions import StartScrapperError, SingleScrapperError, TesseractOCRError, GeminiApiError
 from eauctionsindiabot.utils.utlis import sale_notice_url_formatter
-
+import dotenv
+dotenv.load_dotenv()
+import os
 #one tcp/ip 3-way handshake is made to the server and using the instance we are making repeated requests
 session = requests.session()
 headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-        "Referer": "https://www.eauctionsindia.org/",
-        "Cookie": "wssplashchk=99bcfb9ff292e9266b65b56e677553d7bf326f02.1754305132.1"
-    }
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)...",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.eauctionsindia.com/search",
+    "Cookie": os.getenv("COOKIE"),
+    "Upgrade-Insecure-Requests": "1",
+}
+
 session.headers.update(headers)
 retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
 session.mount("https://", HTTPAdapter(max_retries=retries))
