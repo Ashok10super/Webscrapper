@@ -1,3 +1,5 @@
+from email import header
+
 import requests
 from bs4 import BeautifulSoup  # importing beauttiful soup module
 from datetime import datetime,date
@@ -15,7 +17,6 @@ dotenv.load_dotenv()
 import os
 #one tcp/ip 3-way handshake is made to the server and using the instance we are making repeated requests
 session = requests.session()
-print("This is the cookie",os.getenv("COOKIE"))
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)...",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -24,6 +25,7 @@ headers = {
     "Cookie": "cf_clearance=lOcbVq09a.Go8kUH_THJT7dXXASOzTzIEbWwDaO.iuM-1775715190-1.2.1.1-dbR75FbfXtCuniG4YhKq.xYpRmdZSdnDrtujvXCnVOp_AxCguFIMlvYgRPDLXFiH6KaEVkE7ZdGgcvL7BF8RRAihsmmi1BPlo5DZ5KjgBJXycOc8lfEbNacbPfhT6US_V0NtHiJ1GWNFQBTQiukPLp1fk6d2qdv7G4Uy3EQE3mklHtttmu6gay7jK.jvi7ntywdkyaYCE9NGz93ex382xXm78lCPcsPadvdaqN_4wvmiLIySB8uEu2QQYgKOhBFbyDFyuu08yvd0ldFC2l9jfs7gDXBm55jWf0F1DlfsO_sgAg9ln1.9nKNQBcd37xhLeRBB_RRER.tGPWhxdA5CNw; XSRF-TOKEN=eyJpdiI6ImJUb2VGMWIvam05M1BMR0dIZEVFOUE9PSIsInZhbHVlIjoiYlRDWFp1Mm8vWklQaEJmc1pnSnZrdUJyWDl2enBGdHYrU04rZFphVUtZWWdKTVpVY2hDdzF5aFoybFF3aHlLMDFUMnZmRldYdzNxSkl2Vitmc0NxU3RoeWNvbStYWHhCQ0hFZ0hkSUZUZUVjUE1oYU5yVTdib214Wld2bkVRbEQiLCJtYWMiOiJlMTQxNTVkMjE2ZTc1OTYzYjNiMTM5NmE3OGE1OWJhZGE2YjJiMDM0NDdjMTg1NjEwNDkwYmYxNDY2MzYyMWQ2IiwidGFnIjoiIn0%3D; e_auctions_india_session=eyJpdiI6ImVRQW55bkl3WFRkdFA3UU9nVE0vL0E9PSIsInZhbHVlIjoieWY2dmxDdWVmVVZYR2M5cC9PYk9BSXFJMlRmWFdud3NMMURxTmliNGYxS2NIWC9pdTdMZ2JRU255WHFVckQzVm9DdktaZ05Lbk0zZm00YjQyd2hCMExHQklqVTlOZk9qMkQwYVlJbkZLbVRsSlM1S1pSY0F3a0JiREU2Y25aaFAiLCJtYWMiOiI3MzBhZGJmOTQzNzg4Y2IxOGY2MDY1OGI4N2FjMjVkZWQxM2U1ZWIzNGI2YzY4YjA4NzkxOGY5YjY1ZDdmMWMyIiwidGFnIjoiIn0%3D; 9aOIpketdQ4Gqis1XGjSOjq36hjWV248UCHeGXI1=eyJpdiI6IjlJc1R0S3VOZkdmRUR1VHJVK1VqYXc9PSIsInZhbHVlIjoiUjdWMXZ3ZlQ3VFdING5MaDkwRVpzU045NVk4TmRJQmpLWll2V1VUanNmaHhyZTdVbGdSMjFTYzNwQTNERXpKSVlHdkV1djV3U2xpcGdYUmtKcTRRdEVpa0V0Tmp4MHVIUjh5Y0I3VEFGK2tYRXBHeEYxTTAwcjYxcEt6YWRsK2hjcUdMVzNRc2lvcjgxOUVseVVvV0RnZ0xvSEo4R0IvaTQyOFRHaUd3aFBGTVBoNFpGaG8wMGl6aWJNVnRFNm1EZDFjRjdkcit1R3NzbzduQUpKekMvdTBPSEdUallFdzF5bGd0VXdENnhOTk9vaG9LRXpweWFZMjByRjJpU0ZuUkh2b1NuTHUzLytCYWMrOE9hay9PdkFkVFhXNWw2NnUvQjR2cEQvUElNVWVSK1pnS3JjTUVyZnRxWFZlMkVFRnJrMGxXZ2RCTWV0T2o1Qm5VaUxaVWs3cDJtblV2UWcwZkFlUU1odXZLbkYxcnQyWVN1VDlHcVdHajdTMWk3OWRqamxTRUJzZDhzcnBBRWZ5aDdwUlNUbi9vaFB1U1dZUHNFaEZNT1BqVnF3Yz0iLCJtYWMiOiJhZDk4NjE0NDg2OTdhNWM1OGRkZGE1ZGNiYTk4YWI0NmRmZmFhOTdjOTI1NzkyZjEzZWQ4NGYzOTcyNDIwNTJmIiwidGFnIjoiIn0%3D",
     "Upgrade-Insecure-Requests": "1",
 }
+print("This is the header for the request", headers)
 
 session.headers.update(headers)
 retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
