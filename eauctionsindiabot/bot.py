@@ -15,6 +15,7 @@ dotenv.load_dotenv()
 import os
 #one tcp/ip 3-way handshake is made to the server and using the instance we are making repeated requests
 session = requests.session()
+print("This is the cookie",os.getenv("COOKIE"))
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)...",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
