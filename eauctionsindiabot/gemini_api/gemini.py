@@ -9,7 +9,7 @@ def get_outstanding(text,borrower_name,emd):
     #check if the text is not none
     api_key = os.getenv('GEMINI_API_KEY')
     if text!= None:
-        url ="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+api_key
+        url =f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
         headers = {"Content-Type": "application/json"}
         data = {
                 "contents": [

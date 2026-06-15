@@ -7,39 +7,34 @@ from io import BytesIO
 from eauctionsindiabot.custom_exceptions.exceptions import TesseractOCRError
 def extract_text(url, session):
     try:
-        print("This is the sale notice url",url)
-        response = session.get(url, stream=True)
-        print("status code of the request",response.status_code)
-        response.raise_for_status()
-    except Exception as e:
-        raise TesseractOCRError(e) from e
-    try:
-        # Fetch the image
-        response = session.get(url, stream=True)
+        print("This is the sale notice url", url)
+
+        # One fetch, no stream=True (stream is for large file downloads, not images)
+        response = session.get(url)
+        print("status code of the request", response.status_code)
         response.raise_for_status()
 
+        #Reuse the same response
         img = Image.open(BytesIO(response.content)).convert("RGB")
-
-        # Pre-process the image before OCR
         processed_image = image_enchancer(image=img)
 
         with ProcessPoolExecutor(max_workers=1) as executor:
             future = executor.submit(get_text_from_image, processed_image)
             text = future.result(timeout=30)
 
-    except TimeoutError as e:
+    except TimeoutError:
         print("OCR process took too long. Killing it.")
         future.cancel()
         text = "Sale-notice is complex to read"
     except Exception as e:
         print(f"OCR failed with error: {e}")
-        text = "Sale-notice OCR error"
         raise TesseractOCRError(e) from e
+
     return text
 
 
 def get_text_from_image(processed_image):
-        # pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+        pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
         custom_config = r'--psm 3'
         # Perform OCR using pytesseract
         text = "Sale-notice is complex to read"  # <-- FIX: Initialize text as None

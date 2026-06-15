@@ -3,3 +3,6 @@
 .env
 __init__.py/
 /.idea/
+/playwright_data
+/user_data
+/downloaded_files
