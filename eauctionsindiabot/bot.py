@@ -9,28 +9,28 @@ from eauctionsindiabot.utils.utlis import get_cookies,get_auction_id,is_property
 import dotenv
 dotenv.load_dotenv()
 
-headers = get_cookies(url="https://www.eauctionsindia.com/")
-import os
-#one tcp/ip 3-way handshake is made to the server and using the instance we are making repeated requests
-# headers = {
-#     "User-Agent": actual_ua,  # from browser, not hardcoded
-#     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-#     "Accept-Language": "en-US,en;q=0.9",
-#     "Accept-Encoding": "gzip, deflate, br",
-#     "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
-#     "sec-ch-ua-mobile": "?0",
-#     "sec-ch-ua-platform": '"Windows"',
-#     "sec-fetch-dest": "document",
-#     "sec-fetch-mode": "navigate",
-#     "sec-fetch-site": "same-origin",
-#     "sec-fetch-user": "?1",
-#     "upgrade-insecure-requests": "1",
-#     "Referer": "https://www.eauctionsindia.com/",  # came from homepage
-# }
+
+actual_ua,cookies = get_cookies(url="https://www.eauctionsindia.com/")
+headers = {
+    "User-Agent": actual_ua,  # from browser, not hardcoded
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "sec-fetch-dest": "document",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-site": "same-origin",
+    "sec-fetch-user": "?1",
+    "upgrade-insecure-requests": "1",
+    "Referer": "https://www.eauctionsindia.com/",  # came from homepage
+}
 
 ##one tcp/ip 3-way handshake is made to the server and using the instance we are making repeated requests
 session = cf_requests.Session(impersonate="chrome124")  # mimics real Chrome TLS
 session.headers.update(headers)
+session.cookies = cookies
 # retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
 # session.mount("https://", HTTPAdapter(max_retries=retries))
 
@@ -108,7 +108,7 @@ def start_scrapping(state,date,conn):
             if link_tag and "href" in link_tag.attrs:
                 auction_link = link_tag["href"]
                 print("auction_link", auction_link)
-                url = "https://www.eauctionsindia.com" + str(auction_link)
+                url = str(auction_link)
                 link.append(url)
         return vist_and_save_to_db(link,conn)
 
@@ -297,7 +297,6 @@ def vist_and_save_to_db(link,conn):
         if not sale_notice_url:
             print("No sale notice link found")
             outstanding_amount = ""  # nothing to extract
-            continue
 
         # -------- Case: PDF sale notice ----------
         elif "pdf" in sale_notice_url.lower():
@@ -365,7 +364,7 @@ def vist_and_save_to_db(link,conn):
                 auction_end_date=auction_end_date,
                 sub_end=sub_end,
                 sale_notice=formatted_notice_url,
-                outstanding_amount=outstanding_amount,
+                outstanding_amount="",
                 fetch_date = today_dt,
             )
         #push the extracted details to the mongodb

@@ -13,7 +13,8 @@ if __name__ == "__main__":
         script_log_conn = get_script_log_connection()
         log_check_list["database"]["status"] = Status.SUCCESS  # <-- EXPLICITLY LOG SUCCESS
         print("Database connection successful.")
-        state_list = ['tamil-nadu','Karnataka','Kerala']
+        #'Tamil-nadu''Puducherry','Tamil-nadu'
+        state_list = ["Karnataka"]
         today_date = datetime.today().date().isoformat()
         total_fetched_properties = 0
         for state in state_list:
